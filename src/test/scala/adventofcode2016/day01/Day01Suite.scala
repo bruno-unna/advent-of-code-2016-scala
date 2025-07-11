@@ -38,3 +38,17 @@ class Day01Suite extends FunSuite:
     val newPosition = trace(startingPosition, trajectory).last
     val distance = newPosition.distanceTo(startingPosition)
     assertEquals(distance, 12)
+
+  test("example 4"):
+    val startingPosition = Position(0, 0, Heading.North)
+    val trajectory =
+      List(
+        Transition(Rotation.Right, 8),
+        Transition(Rotation.Right, 4),
+        Transition(Rotation.Right, 4),
+        Transition(Rotation.Right, 8)
+      )
+    val intersection = trace(startingPosition, trajectory).findIntersection
+    assert(intersection.isDefined)
+    val distance = intersection.get.distanceTo(startingPosition)
+    assertEquals(distance, 4)

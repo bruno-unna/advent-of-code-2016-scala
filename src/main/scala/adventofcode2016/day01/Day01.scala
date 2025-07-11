@@ -36,6 +36,10 @@ extension (s: String)
       .map(_.get)
       .toList
 
+extension (history: List[Position])
+  def findIntersection: Option[Position] =
+    history.find(p => history.count(q => p.x == q.x && p.y == q.y) > 1)
+
 def trace(pos: Position, trajectory: List[Transition]): List[Position] =
   trajectory.foldLeft[List[Position]](List(pos))((pList, t) => {
     val p = pList.last
@@ -85,7 +89,14 @@ object Day01 extends ZIOAppDefault:
     for
       bigString <- Util.readBigString("/01.txt")
       parsedTrajectory = bigString.toTrajectory
-      newPosition = trace(startingPosition, parsedTrajectory).last
-      distance = newPosition.distanceTo(startingPosition)
-      _ = printf("Day 01 - distance: %d\n", distance)
-    yield distance
+      history = trace(startingPosition, parsedTrajectory)
+      finalPosition = history.last
+      finalDistance = finalPosition.distanceTo(startingPosition)
+      intersection = history.findIntersection.getOrElse(finalPosition)
+      distanceToIntersection = intersection.distanceTo(startingPosition)
+      _ = printf(
+        "Day 01\n\tfinal distance: %d\n\tdistance to intersection: %d\n",
+        finalDistance,
+        distanceToIntersection
+      )
+    yield distanceToIntersection
