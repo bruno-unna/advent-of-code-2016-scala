@@ -3,8 +3,8 @@ package adventofcode2016.day02
 import zio._
 import adventofcode2016.Util
 
-extension (digit: Char)
-  def affect(direction: Char): Char =
+val standardKeypad: (Char, Char) => Char =
+  (digit, direction) =>
     direction match
       case 'U' =>
         digit match
@@ -24,17 +24,17 @@ extension (digit: Char)
           case rest @ _                  => (rest + 1).toChar
 
 extension (s: String)
-  def toDigit(fromDigit: Char): Char =
+  def toDigit(fromDigit: Char)(keypad: (Char, Char) => Char): Char =
     if s.isEmpty() then fromDigit
     else
-      val newDigit = fromDigit.affect(s.head)
-      s.substring(1).toDigit(newDigit)
+      val newDigit = keypad(fromDigit, s.head)
+      s.substring(1).toDigit(newDigit)(keypad)
 
 def calculateCode(instructions: Seq[String], startingDigit: Char): String =
   val (_, code) =
     instructions.foldLeft[(Char, String)]((startingDigit, ""))((t, s) => {
       val (prevDigit, acc) = t
-      val newDigit = s.toDigit(prevDigit)
+      val newDigit = s.toDigit(prevDigit)(standardKeypad)
       (newDigit, acc + newDigit)
     })
   code
