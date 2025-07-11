@@ -4,7 +4,7 @@ import munit.FunSuite
 
 class Day02Suite extends FunSuite:
   test("calculate code"):
-    val startingDigit = 5
+    val startingDigit = '5'
     val instructions = List(
       "ULL",
       "RRDDD",
@@ -12,4 +12,4 @@ class Day02Suite extends FunSuite:
       "UUUUD"
     )
     val code = calculateCode(instructions, startingDigit)
-    assertEquals(code, 1985)
+    assertEquals(code, "1985")
