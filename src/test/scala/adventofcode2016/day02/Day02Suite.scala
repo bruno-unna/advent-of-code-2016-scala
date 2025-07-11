@@ -11,5 +11,8 @@ class Day02Suite extends FunSuite:
       "LURDL",
       "UUUUD"
     )
-    val code = calculateCode(instructions, startingDigit)
+    val code = calculateCode(instructions, startingDigit, standardKeypad)
     assertEquals(code, "1985")
+
+    val realCode = calculateCode(instructions, startingDigit, funnyKeypad)
+    assertEquals(realCode, "5DB3")
