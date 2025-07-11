@@ -58,3 +58,6 @@ object Util:
         .readAllBytes(zioPath)
         .map(chunk => new String(chunk.toArray, StandardCharsets.UTF_8))
     } yield content
+
+  def readStrings(fileName: String): ZIO[Any, IOException, Seq[String]] =
+    ???
