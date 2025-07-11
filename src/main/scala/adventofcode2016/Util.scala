@@ -60,6 +60,26 @@ object Util:
         .map(chunk => new String(chunk.toArray, StandardCharsets.UTF_8))
     yield content
 
+  /** Reads all lines from a resource file from the classpath into a `Seq` of
+    * `String`.
+    *
+    * This method expects the file to be located in the `src/main/resources`
+    * directory. Each element in the resulting `Seq` corresponds to a single
+    * line from the file. Line terminators (e.g., '\n', '\r\n') are not included
+    * in the returned strings.
+    *
+    * The operation is wrapped in a ZIO effect, handling potential
+    * `IOException`s that might occur during file access (e.g., file not found,
+    * permissions issues).
+    *
+    * @param fileName
+    *   The name of the resource file to read (e.g., "/input.txt"). Must include
+    *   a leading slash if the file is at the root of the resources directory.
+    * @return
+    *   A `ZIO` effect that, when executed, will yield a `Seq[String]`
+    *   containing all lines of the file, or fail with an `IOException` if the
+    *   file cannot be read or found.
+    */
   def readStrings(fileName: String): IO[IOException, Seq[String]] =
     val zioPathEffect: IO[Throwable, Path] = ZIO.attempt {
       // Attempt to get the URL of the resource from the classpath.
