@@ -16,8 +16,6 @@ case class Position(x: Int, y: Int, heading: Heading):
 
 case class Transition(rotation: Rotation, distance: Int)
 
-type Trajectory = List[Transition]
-
 val TransitionRE: Regex = """\s*(R|L)(\d+)\s*""".r
 
 extension (s: String)
@@ -31,33 +29,54 @@ extension (s: String)
           )
         )
       case _ => None
-  def toTrajectory: Trajectory =
+  def toTrajectory: List[Transition] =
     s.split(',')
       .map(_.toTransition)
       .filter(_.isDefined)
       .map(_.get)
       .toList
 
-def trace(pos: Position, trajectory: Trajectory): Position =
-  trajectory.foldLeft[Position](pos)((p, t) => {
-    p.heading match
+def trace(pos: Position, trajectory: List[Transition]): List[Position] =
+  trajectory.foldLeft[List[Position]](List(pos))((pList, t) => {
+    val p = pList.last
+    val newSegment = p.heading match
       case Heading.North =>
         if t.rotation == Rotation.Right then
-          Position(p.x + t.distance, p.y, Heading.West)
-        else Position(p.x - t.distance, p.y, Heading.East)
+          val x0 = p.x + 1
+          val x1 = p.x + t.distance
+          x0 to x1 map (x => Position(x, p.y, Heading.East))
+        else
+          val x0 = p.x - 1
+          val x1 = p.x - t.distance
+          x0 to x1 by -1 map (x => Position(x, p.y, Heading.West))
       case Heading.South =>
         if t.rotation == Rotation.Right then
-          Position(p.x - t.distance, p.y, Heading.East)
-        else Position(p.x + t.distance, p.y, Heading.West)
+          val x0 = p.x - 1
+          val x1 = p.x - t.distance
+          x0 to x1 by -1 map (x => Position(x, p.y, Heading.West))
+        else
+          val x0 = p.x + 1
+          val x1 = p.x + t.distance
+          x0 to x1 map (x => Position(x, p.y, Heading.East))
       case Heading.East =>
         if t.rotation == Rotation.Right then
-          Position(p.x + t.distance, p.y, Heading.North)
-        else Position(p.x - t.distance, p.y, Heading.South)
+          val y0 = p.y - 1
+          val y1 = p.y - t.distance
+          y0 to y1 by -1 map (y => Position(p.x, y, Heading.South))
+        else
+          val y0 = p.y + 1
+          val y1 = p.y + t.distance
+          y0 to y1 map (y => Position(p.x, y, Heading.North))
       case Heading.West =>
         if t.rotation == Rotation.Right then
-          Position(p.x - t.distance, p.y, Heading.South)
-        else Position(p.x + t.distance, p.y, Heading.North)
-
+          val y0 = p.y + 1
+          val y1 = p.y + t.distance
+          y0 to y1 map (y => Position(p.x, y, Heading.North))
+        else
+          val y0 = p.y - 1
+          val y1 = p.y - t.distance
+          y0 to y1 by -1 map (y => Position(p.x, y, Heading.South))
+    pList.appendedAll(newSegment)
   })
 
 object Day01 extends ZIOAppDefault:
@@ -66,7 +85,7 @@ object Day01 extends ZIOAppDefault:
     for
       bigString <- Util.readBigString("/01.txt")
       parsedTrajectory = bigString.toTrajectory
-      newPosition = trace(startingPosition, parsedTrajectory)
+      newPosition = trace(startingPosition, parsedTrajectory).last
       distance = newPosition.distanceTo(startingPosition)
       _ = printf("Day 01 - distance: %d\n", distance)
     yield distance

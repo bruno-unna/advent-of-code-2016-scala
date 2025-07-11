@@ -1,7 +1,6 @@
 package adventofcode2016.day01
 
 import munit.FunSuite
-import adventofcode2016.day01.{Rotation, Trajectory}
 
 class Day01Suite extends FunSuite:
   test("example 1"):
@@ -11,7 +10,7 @@ class Day01Suite extends FunSuite:
         Transition(Rotation.Right, 2),
         Transition(Rotation.Left, 3)
       )
-    val newPosition = trace(startingPosition, trajectory)
+    val newPosition = trace(startingPosition, trajectory).last
     val distance = newPosition.distanceTo(startingPosition)
     assertEquals(distance, 5)
 
@@ -23,7 +22,7 @@ class Day01Suite extends FunSuite:
         Transition(Rotation.Right, 2),
         Transition(Rotation.Right, 2)
       )
-    val newPosition = trace(startingPosition, trajectory)
+    val newPosition = trace(startingPosition, trajectory).last
     val distance = newPosition.distanceTo(startingPosition)
     assertEquals(distance, 2)
 
@@ -36,6 +35,6 @@ class Day01Suite extends FunSuite:
         Transition(Rotation.Right, 5),
         Transition(Rotation.Right, 3)
       )
-    val newPosition = trace(startingPosition, trajectory)
+    val newPosition = trace(startingPosition, trajectory).last
     val distance = newPosition.distanceTo(startingPosition)
     assertEquals(distance, 12)
