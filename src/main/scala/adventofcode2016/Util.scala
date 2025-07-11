@@ -14,12 +14,9 @@ object Util:
       Path.fromJava(java.nio.file.Paths.get(url.toURI))
     }
 
-    val contentFromZioPathEffect: ZIO[Any, IOException, String] =
-      for {
-        zioPath <- zioPathEffect.refineToOrDie[IOException]
-        content <- Files
-          .readAllBytes(zioPath)
-          .map(chunk => new String(chunk.toArray, StandardCharsets.UTF_8))
-      } yield content
-
-    contentFromZioPathEffect
+    for {
+      zioPath <- zioPathEffect.refineToOrDie[IOException]
+      content <- Files
+        .readAllBytes(zioPath)
+        .map(chunk => new String(chunk.toArray, StandardCharsets.UTF_8))
+    } yield content
