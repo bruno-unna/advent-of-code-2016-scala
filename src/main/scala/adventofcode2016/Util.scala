@@ -4,6 +4,7 @@ import zio._
 import zio.nio.file.{Path, Files}
 import java.io.IOException
 import java.nio.charset.StandardCharsets
+import zio.nio.charset.Charset
 
 /** A utility object for common Advent of Code tasks, particularly for reading
   * input files.
@@ -52,12 +53,30 @@ object Util:
     // 1. Get the ZIO Path, refining any Throwable to IOException.
     // 2. Read all bytes from the obtained path.
     // 3. Convert the byte Chunk to a String using UTF-8 encoding.
-    for {
+    for
       zioPath <- zioPathEffect.refineToOrDie[IOException]
       content <- Files
         .readAllBytes(zioPath)
         .map(chunk => new String(chunk.toArray, StandardCharsets.UTF_8))
-    } yield content
+    yield content
 
-  def readStrings(fileName: String): ZIO[Any, IOException, Seq[String]] =
-    ???
+  def readStrings(fileName: String): IO[IOException, Seq[String]] =
+    val zioPathEffect: IO[Throwable, Path] = ZIO.attempt {
+      // Attempt to get the URL of the resource from the classpath.
+      // getClass.getResource will return null if the resource is not found.
+      val url = getClass.getResource(fileName)
+
+      // If the URL is null, it means the resource was not found.
+      // In this case, we throw an IOException to propagate the failure
+      // within the ZIO effect.
+      Option(url) match {
+        case Some(u) => Path.fromJava(java.nio.file.Paths.get(u.toURI))
+        case None =>
+          throw new IOException(s"Resource '$fileName' not found on classpath.")
+      }
+    }
+
+    for
+      zioPath <- zioPathEffect.refineToOrDie[IOException]
+      lines <- Files.readAllLines(zioPath, Charset.defaultCharset)
+    yield lines
