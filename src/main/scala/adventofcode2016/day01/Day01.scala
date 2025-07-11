@@ -43,43 +43,35 @@ extension (history: List[Position])
 def trace(pos: Position, trajectory: List[Transition]): List[Position] =
   trajectory.foldLeft[List[Position]](List(pos))((pList, t) => {
     val p = pList.last
-    val newSegment = p.heading match
-      case Heading.North =>
-        if t.rotation == Rotation.Right then
-          val x0 = p.x + 1
-          val x1 = p.x + t.distance
-          x0 to x1 map (x => Position(x, p.y, Heading.East))
-        else
-          val x0 = p.x - 1
-          val x1 = p.x - t.distance
-          x0 to x1 by -1 map (x => Position(x, p.y, Heading.West))
-      case Heading.South =>
-        if t.rotation == Rotation.Right then
-          val x0 = p.x - 1
-          val x1 = p.x - t.distance
-          x0 to x1 by -1 map (x => Position(x, p.y, Heading.West))
-        else
-          val x0 = p.x + 1
-          val x1 = p.x + t.distance
-          x0 to x1 map (x => Position(x, p.y, Heading.East))
-      case Heading.East =>
-        if t.rotation == Rotation.Right then
-          val y0 = p.y - 1
-          val y1 = p.y - t.distance
-          y0 to y1 by -1 map (y => Position(p.x, y, Heading.South))
-        else
-          val y0 = p.y + 1
-          val y1 = p.y + t.distance
-          y0 to y1 map (y => Position(p.x, y, Heading.North))
-      case Heading.West =>
-        if t.rotation == Rotation.Right then
-          val y0 = p.y + 1
-          val y1 = p.y + t.distance
-          y0 to y1 map (y => Position(p.x, y, Heading.North))
-        else
-          val y0 = p.y - 1
-          val y1 = p.y - t.distance
-          y0 to y1 by -1 map (y => Position(p.x, y, Heading.South))
+
+    val (xRange, yRange, newHeading) = t.rotation match
+      case Rotation.Right =>
+        p.heading match
+          case Heading.North =>
+            (p.x + 1 to p.x + t.distance by 1, p.y to p.y, Heading.East)
+          case Heading.South =>
+            (p.x - 1 to p.x - t.distance by -1, p.y to p.y, Heading.West)
+          case Heading.East =>
+            (p.x to p.x, p.y - 1 to p.y - t.distance by -1, Heading.South)
+          case Heading.West =>
+            (p.x to p.x, p.y + 1 to p.y + t.distance by 1, Heading.North)
+
+      case Rotation.Left =>
+        p.heading match
+          case Heading.North =>
+            (p.x - 1 to p.x - t.distance by -1, p.y to p.y, Heading.West)
+          case Heading.South =>
+            (p.x + 1 to p.x + t.distance by 1, p.y to p.y, Heading.East)
+          case Heading.East =>
+            (p.x to p.x, p.y + 1 to p.y + t.distance by 1, Heading.North)
+          case Heading.West =>
+            (p.x to p.x, p.y - 1 to p.y - t.distance by -1, Heading.South)
+
+    val newSegment = for
+      x <- xRange
+      y <- yRange
+    yield Position(x, y, newHeading)
+
     pList.appendedAll(newSegment)
   })
 
