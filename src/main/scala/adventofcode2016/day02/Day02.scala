@@ -76,7 +76,7 @@ object Day02 extends ZIOAppDefault:
       naiveCode = calculateCode(instructions, '5', standardKeypad)
       realCode = calculateCode(instructions, '5', funnyKeypad)
       _ = printf(
-        "Day 02\n\tnaive code for bathroom: %d\n\treal code: %s\n",
+        "Day 02\n\tnaive code for bathroom: %s\n\treal code: %s\n",
         naiveCode,
         realCode
       )
