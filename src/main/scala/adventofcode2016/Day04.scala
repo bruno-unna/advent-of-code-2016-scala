@@ -54,9 +54,14 @@ object Day04 extends ZIOAppDefault:
           .collect { case Some(room) => room }
       sumOfSectors = Day04.sumValidSectors(rooms)
 
+      northPoleRoomSector = rooms
+        .find(_.decrypt.startsWith("north"))
+        .map(_.sector)
+        .getOrElse(0)
+
       _ = printf(
-        "Day 04\n\tsum of sector IDs: %d\n\t???: %d\n",
+        "Day 04\n\tsum of sector IDs: %d\n\tNorth Pole room sector: %d\n",
         sumOfSectors,
-        0
+        northPoleRoomSector
       )
-    yield (sumOfSectors)
+    yield (sumOfSectors, northPoleRoomSector)
