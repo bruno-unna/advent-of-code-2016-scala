@@ -14,7 +14,14 @@ object Day05:
     hashBytes.map("%02x".format(_)).mkString
 
   def calculatePassword(doorID: String): String =
-    ???
+    val naturalNumbers: LazyList[Int] = LazyList.from(0)
+    val maybeChars = naturalNumbers.map: n =>
+      val hash = md5(doorID + n)
+      if hash.startsWith("00000") then Some(hash.charAt(5))
+      else None
+    val goodChars = maybeChars.collect:
+      case Some(c) => c
+    goodChars.take(8).mkString
 
   @main def run =
     val doorID = "ugkcyxxp"
