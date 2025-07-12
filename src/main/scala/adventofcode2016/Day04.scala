@@ -52,16 +52,19 @@ object Day04 extends ZIOAppDefault:
         roomNames
           .map(Room.fromString(_))
           .collect { case Some(room) => room }
-      sumOfSectors = Day04.sumValidSectors(rooms)
+      sumOfSectors = sumValidSectors(rooms)
 
-      northPoleRoomSector = rooms
+      northPoleRoom = rooms
         .find(_.decrypt.startsWith("north"))
-        .map(_.sector)
-        .getOrElse(0)
+
+      (northPoleRoomName, northPoleRoomSector) = northPoleRoom match
+        case None    => ("?", 0)
+        case Some(r) => (r.decrypt, r.sector)
 
       _ = printf(
-        "Day 04\n\tsum of sector IDs: %d\n\tNorth Pole room sector: %d\n",
+        "Day 04\n\tsum of sector IDs: %d\n\tRoom \"%s\"'s sector: %d\n",
         sumOfSectors,
+        northPoleRoomName,
         northPoleRoomSector
       )
-    yield (sumOfSectors, northPoleRoomSector)
+    yield (sumOfSectors, northPoleRoom)
