@@ -36,7 +36,7 @@ object Day04 extends ZIOAppDefault:
 
   def run =
     for
-      roomNames <- Util.readStrings("/03.txt")
+      roomNames <- Util.readStrings("/04.txt")
 
       rooms =
         roomNames
