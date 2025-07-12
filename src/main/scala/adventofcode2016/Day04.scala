@@ -10,13 +10,11 @@ case class Room(encryptedName: String, sector: Int, checksum: String):
     val chars = encryptedName.replaceAll("-", "").toCharArray().sorted
     val counts = chars
       .groupBy(identity)
-      .map { case (char, listOfChars) =>
-        (char, listOfChars.length)
-      }
-    val sortedKeys = counts.keys.toList.sortWith { (k1, k2) =>
+      .map:
+        case (char, listOfChars) => (char, listOfChars.length)
+    val sortedKeys = counts.keys.toList.sortWith: (k1, k2) =>
       if counts(k1) == counts(k2) then k1 < k2
       else counts(k1) > counts(k2)
-    }
     val calculatedChecksum = sortedKeys.take(5).mkString
     checksum == calculatedChecksum
 
@@ -24,10 +22,9 @@ case class Room(encryptedName: String, sector: Int, checksum: String):
     val offset = sector % 26
     encryptedName
       .toCharArray()
-      .map {
+      .map:
         case '-'   => ' '
         case c @ _ => (((c - 'a') + offset) % 26 + 'a').toChar
-      }
       .mkString
 
 object Room:
