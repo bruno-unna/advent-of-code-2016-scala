@@ -27,3 +27,11 @@ class Day04Suite extends FunSuite:
         .collect { case Some(room) => room }
     val sumOfSectors = Day04.sumValidSectors(rooms)
     assertEquals(sumOfSectors, 1514)
+
+  test("test decryption"):
+    val encryptedName = "qzmt-zixmtkozy-ivhz-343[abcde]"
+    val room = Room.fromString(encryptedName)
+    assert(room.isDefined)
+    val decryptedName = room.get.decrypt
+    val expectedName = "very encrypted name"
+    assertEquals(decryptedName, expectedName)

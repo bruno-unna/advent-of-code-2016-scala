@@ -7,7 +7,7 @@ import scala.util.matching.Regex
 
 case class Room(encryptedName: String, sector: Int, checksum: String):
   def isValid: Boolean =
-    val chars = encryptedName.toCharArray().sorted
+    val chars = encryptedName.replaceAll("-", "").toCharArray().sorted
     val counts = chars
       .groupBy(identity)
       .map { case (char, listOfChars) =>
@@ -20,13 +20,23 @@ case class Room(encryptedName: String, sector: Int, checksum: String):
     val calculatedChecksum = sortedKeys.take(5).mkString
     checksum == calculatedChecksum
 
+  def decrypt: String =
+    val offset = sector % 26
+    encryptedName
+      .toCharArray()
+      .map {
+        case '-'   => ' '
+        case c @ _ => (((c - 'a') + offset) % 26 + 'a').toChar
+      }
+      .mkString
+
 object Room:
   val RoomRE: Regex = """((?:[a-z]+-)+)(\d+)\[([a-z]+)\]""".r
 
   def fromString(s: String): Option[Room] =
     s match
       case RoomRE(name, sector, checksum) =>
-        Some(Room(name.replaceAll("-", ""), sector.toInt, checksum))
+        Some(Room(name.dropRight(1), sector.toInt, checksum))
       case _ => None
 
 object Day04 extends ZIOAppDefault:
