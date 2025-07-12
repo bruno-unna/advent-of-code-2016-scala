@@ -21,4 +21,9 @@ class Day04Suite extends FunSuite:
     assert(!maybeRoom.get.isValid)
 
   test("sum sector IDs"):
-    val sumOfSectors = Day04.sumValidSectors(roomNamesList)
+    val rooms =
+      roomNamesList
+        .map(Room.fromString(_))
+        .collect { case Some(room) => room }
+    val sumOfSectors = Day04.sumValidSectors(rooms)
+    assertEquals(sumOfSectors, 1514)
