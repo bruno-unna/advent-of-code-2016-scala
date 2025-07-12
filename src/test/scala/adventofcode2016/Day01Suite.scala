@@ -1,4 +1,4 @@
-package adventofcode2016.day01
+package adventofcode2016
 
 import munit.FunSuite
 

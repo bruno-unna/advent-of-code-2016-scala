@@ -1,4 +1,4 @@
-package adventofcode2016.day01
+package adventofcode2016
 
 import zio._
 import adventofcode2016.Util
