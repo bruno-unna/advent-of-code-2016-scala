@@ -15,13 +15,13 @@ case class Room(encryptedName: String, sector: Int, checksum: String):
       }
     val sortedKeys = counts.keys.toList.sortWith { (k1, k2) =>
       if counts(k1) == counts(k2) then k1 < k2
-      else counts(k1) < counts(k2)
+      else counts(k1) > counts(k2)
     }
-    val calculatedChecksum = sortedKeys.take(5).toString
+    val calculatedChecksum = sortedKeys.take(5).mkString
     checksum == calculatedChecksum
 
 object Room:
-  val RoomRE: Regex = """((?:[a-z]+-)+)(\d)+\[([a-z]+)\]""".r
+  val RoomRE: Regex = """((?:[a-z]+-)+)(\d+)\[([a-z]+)\]""".r
 
   def fromString(s: String): Option[Room] =
     s match
