@@ -8,14 +8,19 @@ import scala.util.matching.Regex
 case class Room(encryptedName: String, sector: Int, checksum: String):
   def isValid: Boolean =
     val chars = encryptedName.replaceAll("-", "").toCharArray().sorted
+
     val counts = chars
       .groupBy(identity)
       .map:
         case (char, listOfChars) => (char, listOfChars.length)
-    val sortedKeys = counts.keys.toList.sortWith: (k1, k2) =>
-      if counts(k1) == counts(k2) then k1 < k2
-      else counts(k1) > counts(k2)
+
+    val sortedKeys = counts.toSeq
+      .sortBy:
+        case (char, count) => (-count, char)
+      .map(_._1)
+
     val calculatedChecksum = sortedKeys.take(5).mkString
+
     checksum == calculatedChecksum
 
   def decrypt: String =
