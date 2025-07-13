@@ -7,6 +7,7 @@ lazy val root = project
     version := "0.1.0-SNAPSHOT",
     scalaVersion := scala3Version,
     libraryDependencies += "dev.zio" %% "zio" % "2.1.19",
+    libraryDependencies += "dev.zio" %% "zio-logging" % "2.5.1",
     libraryDependencies += "dev.zio" %% "zio-nio" % "2.0.2",
     libraryDependencies += "org.scalameta" %% "munit" % "1.1.1" % Test
   )
