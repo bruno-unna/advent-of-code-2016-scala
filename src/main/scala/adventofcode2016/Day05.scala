@@ -1,14 +1,12 @@
 package adventofcode2016
 
 import adventofcode2016.Util
-import zio.*
-import zio.logging.consoleLogger
 
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import scala.annotation.tailrec
 
-object Day05 extends ZIOAppDefault:
+object Day05 extends App:
 
   val md = MessageDigest.getInstance("MD5")
 
@@ -21,9 +19,7 @@ object Day05 extends ZIOAppDefault:
 
     val maybeChars = naturalNumbers.map: n =>
       val hash = md5(doorID + n)
-      if hash.startsWith("00000") then
-        ZIO.logInfo("found hash " + hash)
-        Some(hash.charAt(5))
+      if hash.startsWith("00000") then Some(hash.charAt(5))
       else None
 
     val goodChars = maybeChars.collect:
@@ -55,12 +51,10 @@ object Day05 extends ZIOAppDefault:
       .map(_._2)
       .mkString
 
-  def run =
-    for
-      _ <- ZIO.logInfo("Day 05")
-      doorID = "ugkcyxxp"
-      password = calculatePassword(doorID)
-      _ <- ZIO.logInfo(s"password: $password")
-      secondPassword = calculateSecondPassword(doorID)
-      _ <- ZIO.logInfo(s"second password: $secondPassword")
-    yield ExitCode.success
+  @main def run =
+    println("Day 05")
+    val doorID = "ugkcyxxp"
+    val password = calculatePassword(doorID)
+    println(s"password: $password")
+    val secondPassword = calculateSecondPassword(doorID)
+    println(s"second password: $secondPassword")
