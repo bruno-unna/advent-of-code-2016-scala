@@ -4,14 +4,40 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import scala.annotation.tailrec
 
+/** Solves Day 05 of Advent of Code 2016.
+  *
+  * This object contains methods to calculate two different passwords based on a
+  * given Door ID by hashing operations.
+  */
 object Day05 extends App:
 
+  /** An instance of `MessageDigest` configured for MD5 hashing. This is
+    * pre-initialised for efficiency.
+    */
   val md = MessageDigest.getInstance("MD5")
 
+  /** Calculates the MD5 hash of a given string.
+    *
+    * @param s
+    *   The input string.
+    * @return
+    *   The MD5 hash of the string as a 32-character hexadecimal string.
+    */
   private def md5(s: String): String =
     val hashBytes = md.digest(s.getBytes(StandardCharsets.UTF_8))
     hashBytes.map("%02x".format(_)).mkString
 
+  /** Calculates the first password for Day 05.
+    *
+    * The password is an 8-character string formed by taking the 6th character
+    * of MD5 hashes that start with five zeroes ("00000"). Hashes are generated
+    * by appending sequential integers (starting from 0) to the door ID.
+    *
+    * @param doorID
+    *   The door ID string.
+    * @return
+    *   The calculated 8-character password.
+    */
   def calculatePassword(doorID: String): String =
     val naturalNumbers: LazyList[Int] = LazyList.from(0)
 
@@ -25,7 +51,36 @@ object Day05 extends App:
 
     goodChars.take(8).mkString
 
+  /** Calculates the second password for Day 05.
+    *
+    * The password is an 8-character string where each character is placed at a
+    * specific position. The 6th character of an MD5 hash (that starts with five
+    * zeroes) indicates the position (0-7), and the 7th character indicates the
+    * character for that position. Positions can only be filled once.
+    *
+    * @param doorID
+    *   The door ID string.
+    * @return
+    *   The calculated 8-character password.
+    */
   def calculateSecondPassword(doorID: String): String =
+    /** Recursively collects 8 unique (position, character) pairs for the second
+      * password.
+      *
+      * It iterates through sequential numbers 'n', generates MD5 hashes, and
+      * extracts relevant position and character information from hashes
+      * starting with "00000". Positions must be unique and between '0' and '7'.
+      *
+      * @param n
+      *   The current integer to append to the door ID for hashing.
+      * @param acc
+      *   The accumulator list of (position, character) pairs found so far (in
+      *   reverse order).
+      * @param seen
+      *   The set of positions that have already been filled.
+      * @return
+      *   A list of 8 unique (position, character) pairs.
+      */
     @tailrec
     def collectChars(
         n: Int,
@@ -49,6 +104,11 @@ object Day05 extends App:
       .map(_._2)
       .mkString
 
+  /** The main entry point for the Day 05 application.
+    *
+    * Calculates and prints both the first and second passwords for the
+    * predefined door ID "ugkcyxxp".
+    */
   @main def run =
     println("Day 05")
     val doorID = "ugkcyxxp"
