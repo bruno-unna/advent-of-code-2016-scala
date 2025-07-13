@@ -1,7 +1,5 @@
 package adventofcode2016
 
-import adventofcode2016.Util
-
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import scala.annotation.tailrec
