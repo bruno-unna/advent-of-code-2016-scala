@@ -6,7 +6,18 @@ import scala.util.Try
 
 object Day06 extends ZIOAppDefault:
 
-  def errorCorrect(signal: Seq[String]): String = ???
+  def errorCorrect(signal: Seq[String]): String =
+    signal
+      .map(_.toCharArray())
+      .transpose
+      .map: letterCandidates =>
+        val letterGroups = letterCandidates.groupBy(identity)
+        val letterCounts = letterGroups.keys
+          .map: g =>
+            (g, letterGroups(g).length)
+          .toList
+        letterCounts.maxBy(_._2)._1
+      .mkString
 
   def run =
     for
