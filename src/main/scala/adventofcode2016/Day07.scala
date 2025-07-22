@@ -81,7 +81,7 @@ object Day07 extends ZIOAppDefault:
         val maybeBab = abaRE
           .findFirstIn(subSupernet)
           .map: aba =>
-            List(aba.charAt(1), aba.charAt(0), aba.charAt(1)).mkString
+            s"${aba.charAt(1)}${aba.charAt(0)}${aba.charAt(1)}"
         maybeBab.map(hypernet.contains(_))
       .flatten
     matchFound.exists(_ == true)
