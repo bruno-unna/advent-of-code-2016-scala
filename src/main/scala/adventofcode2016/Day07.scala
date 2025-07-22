@@ -29,13 +29,11 @@ object Day07 extends ZIOAppDefault:
       .toList
     val supernet = segments
       .map(_._1)
-      .collect:
-        case Some(value) => value
+      .flatten
       .mkString(" ")
     val hypernet = segments
       .map(_._2)
-      .collect:
-        case Some(value) => value
+      .flatten
       .mkString(" ")
     val matchFound = (0 to supernet.length - 3)
       .map: index =>
@@ -45,8 +43,7 @@ object Day07 extends ZIOAppDefault:
           .map: aba =>
             List(aba.charAt(1), aba.charAt(0), aba.charAt(1)).mkString
         maybeBab.map(hypernet.contains(_))
-      .collect:
-        case Some(value) => value
+      .flatten
     matchFound.exists(_ == true)
 
   def run =
