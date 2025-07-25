@@ -10,6 +10,7 @@ object Day09 extends ZIOAppDefault:
   val MarkerDataRE: Regex = """^(.*?)\((\d+)x(\d+)\)(.*)$""".r
 
   def decompress(compressed: String): String =
+
     @tailrec
     def decompressRec(prefixAcc: String, compressed: String): String =
       if compressed.isBlank then prefixAcc
@@ -30,10 +31,26 @@ object Day09 extends ZIOAppDefault:
 
     decompressRec("", compressed)
 
+  def composableDecompress(compressed: String): Long =
+
+    @tailrec
+    def composableDecompressRec(accLength: Long, compressed: String): Long = ???
+
+    composableDecompressRec(0, compressed)
+
   def run =
     for
       compressed <- Util.readBigString("/09.txt")
+
       decompressed = decompress(compressed)
-      length = decompressed.length
-      _ <- Console.printLine(s"length of decompressed document is ${length}")
+      simpleLength = decompressed.length
+
+      composableLength = composableDecompress(compressed)
+
+      _ <- Console.printLine(
+        s"part 1: length of decompressed document is ${simpleLength}"
+      )
+      _ <- Console.printLine(
+        s"part 2: length of (composable) decompressed document is ${composableLength}"
+      )
     yield ExitCode.success
