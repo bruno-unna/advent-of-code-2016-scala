@@ -57,7 +57,7 @@ object Util:
       zioPath <- zioPathEffect.refineToOrDie[IOException]
       content <- Files
         .readAllBytes(zioPath)
-        .map(chunk => new String(chunk.toArray, StandardCharsets.UTF_8))
+        .map(chunk => new String(chunk.toArray, StandardCharsets.UTF_8).trim())
     yield content
 
   /** Reads all lines from a resource file from the classpath into a `Seq` of
