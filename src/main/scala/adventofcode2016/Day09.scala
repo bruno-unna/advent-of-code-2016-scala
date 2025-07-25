@@ -1,11 +1,34 @@
 package adventofcode2016
 
-import zio._
 import adventofcode2016.Util
+import zio.*
+
+import scala.annotation.tailrec
 import scala.util.matching.Regex
 
 object Day09 extends ZIOAppDefault:
-  def decompress(compressed: String): String = ???
+  val MarkerDataRE: Regex = """^(.*?)\((\d+)x(\d+)\)(.*)$""".r
+
+  def decompress(compressed: String): String =
+    @tailrec
+    def decompressRec(prefixAcc: String, compressed: String): String =
+      if compressed.isBlank then prefixAcc
+      else
+        compressed.match
+          case MarkerDataRE(prefix, dataLengthStr, repetitionsStr, suffix) =>
+            val dataLength = dataLengthStr.toInt
+            val repetitions = repetitionsStr.toInt
+
+            val expandedSegment = suffix.take(dataLength) * repetitions
+
+            val newPrefix = prefixAcc + prefix + expandedSegment
+            val newSuffix = suffix.drop(dataLength)
+
+            decompressRec(newPrefix, newSuffix)
+          case _ =>
+            prefixAcc + compressed
+
+    decompressRec("", compressed)
 
   def run =
     for
