@@ -35,9 +35,11 @@ case class Display(private val displayRef: Ref[List[List[Boolean]]]):
           val height = h.toInt
           for
             m <- displayRef.get
+
             topRect = 0 until height map: row =>
               List.fill[Boolean](width)(true) ++ m(row).drop(width)
             mPrime = topRect.toList ++ m.drop(height)
+
             _ <- displayRef.set(mPrime)
             display <- execute(p.tail)
           yield display
@@ -49,7 +51,7 @@ case class Display(private val displayRef: Ref[List[List[Boolean]]]):
 
             mPrime = m.zipWithIndex.map: idxTuple =>
               if idxTuple._2 == row then
-                val (left, right) = idxTuple._1.splitAt(offset)
+                val (left, right) = idxTuple._1.splitAt(idxTuple._1.length - offset)
                 right ++ left
               else idxTuple._1
 
@@ -64,7 +66,7 @@ case class Display(private val displayRef: Ref[List[List[Boolean]]]):
 
             mPrime = m.transpose.zipWithIndex.map: idxTuple =>
               if idxTuple._2 == col then
-                val (top, bottom) = idxTuple._1.splitAt(offset)
+                val (top, bottom) = idxTuple._1.splitAt(idxTuple._1.length - offset)
                 bottom ++ top
               else idxTuple._1
 
