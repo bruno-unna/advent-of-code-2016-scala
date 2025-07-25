@@ -20,6 +20,10 @@ object Day08Suite extends ZIOSpecDefault:
       for
         display <- Display.make(SCREEN_WIDTH, SCREEN_HEIGHT)
         newDisplay <- display.execute(program)
+
+        finalAsString <- newDisplay.asString()
         nLeds <- newDisplay.countLeds
+
+        _ <- Console.printLine(s"final display:\n${finalAsString}")
       yield assertTrue(nLeds == 6)
   )
