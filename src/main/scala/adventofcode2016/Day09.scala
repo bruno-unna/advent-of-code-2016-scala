@@ -62,21 +62,61 @@ object Day09 extends ZIOAppDefault:
     *   The total length of the fully decompressed content as a `Long`.
     */
   def composableDecompress(compressed: String): Long =
-    if compressed.isBlank then 0
-    else
-      compressed.match
-        case MarkerDataRE(prefix, dataLengthStr, repetitionsStr, suffix) =>
-          val dataLength = dataLengthStr.toInt
-          val repetitions = repetitionsStr.toInt
+    @tailrec
+    def loop(
+        currentSegment: String,
+        currentMultiplier: Int,
+        acc: Long,
+        workStack: List[(String, Int)]
+    ): Long =
+      if currentSegment.isBlank then
+        if workStack.isEmpty then
+          // we're done
+          acc
+        else
+          // current segment is done, but there's more work in the stack
+          val ((nextSegment, nextMultiplier), newStack) =
+            (workStack.head, workStack.tail)
+          loop(nextSegment, nextMultiplier, acc, newStack)
+      else
+        currentSegment.match
+          case MarkerDataRE(prefix, dataLengthStr, repetitionsStr, suffix) =>
+            val dataLength = dataLengthStr.toInt
+            val repetitions = repetitionsStr.toInt
 
-          val segment = suffix.take(dataLength)
-          val rest = suffix.drop(dataLength)
+            // Add the length of the literal prefix, considering the current multiplier
+            val newAcc = acc + prefix.length * currentMultiplier
 
-          prefix.length +
-            repetitions * composableDecompress(segment) +
-            composableDecompress(rest)
-        case _ =>
-          compressed.length
+            // Divide the remaining work
+            val segment = suffix.take(dataLength)
+            val rest = suffix.drop(dataLength)
+
+            // Push the rest of the segment onto the stack to process it eventually.
+            // It retains the 'currentMultiplier'.
+            val newWorkStack = (rest, currentMultiplier) :: workStack
+
+            // Continue the loop with 'segment'. Its effective multiplier
+            // is the current multiplier multiplied by the marker's repetitions.
+            loop(segment, repetitions * currentMultiplier, newAcc, newWorkStack)
+
+          case _ =>
+            // Add the length of the literal characters, considering the current multiplier
+            val newAcc = acc + currentSegment.length * currentMultiplier
+
+            // If there's pending work on the stack, pop it and continue the loop
+            if workStack.nonEmpty then
+              val ((nextSegment, nextMultiplier), newStack) =
+                (workStack.head, workStack.tail)
+              loop(nextSegment, nextMultiplier, newAcc, newStack)
+            else // No more string and no more work on stack, we are done
+              newAcc
+
+    loop(
+      currentSegment = compressed,
+      currentMultiplier = 1,
+      acc = 0L,
+      workStack = List.empty
+    )
 
   /** The main entry point of the ZIO application for Day 9. Reads the
     * compressed document, calculates both simple and composable decompressed
