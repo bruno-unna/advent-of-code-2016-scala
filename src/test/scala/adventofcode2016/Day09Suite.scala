@@ -42,19 +42,19 @@ class Day09Suite extends FunSuite:
   test("Composasble decompression example 1"):
     val compressed = "(3x3)XYZ"
     val decompressedLength = composableDecompress(compressed)
-    assertEquals(decompressedLength, 9)
+    assertEquals(decompressedLength, 9L)
 
   test("Composasble decompression example 2"):
     val compressed = "X(8x2)(3x3)ABCY"
     val decompressedLength = composableDecompress(compressed)
-    assertEquals(decompressedLength, 20)
+    assertEquals(decompressedLength, 20L)
 
   test("Composasble decompression example 3"):
     val compressed = "(27x12)(20x12)(13x14)(7x10)(1x12)A"
     val decompressedLength = composableDecompress(compressed)
-    assertEquals(decompressedLength, 241920)
+    assertEquals(decompressedLength, 241920L)
 
   test("Composasble decompression example 4"):
     val compressed = "(25x3)(3x3)ABC(2x3)XY(5x2)PQRSTX(18x9)(3x2)TWO(5x7)SEVEN"
     val decompressedLength = composableDecompress(compressed)
-    assertEquals(decompressedLength, 445)
+    assertEquals(decompressedLength, 445L)
