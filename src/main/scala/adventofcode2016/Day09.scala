@@ -32,7 +32,7 @@ object Day09 extends ZIOAppDefault:
   def decompress(compressed: String): String =
 
     @tailrec
-    def decompressRec(prefixAcc: String, compressed: String): String =
+    def loop(prefixAcc: String, compressed: String): String =
       if compressed.isBlank then prefixAcc
       else
         compressed.match
@@ -45,11 +45,11 @@ object Day09 extends ZIOAppDefault:
             val newPrefix = prefixAcc + prefix + expandedSegment
             val newSuffix = suffix.drop(dataLength)
 
-            decompressRec(newPrefix, newSuffix)
+            loop(newPrefix, newSuffix)
           case _ =>
             prefixAcc + compressed
 
-    decompressRec("", compressed)
+    loop("", compressed)
 
   /** Calculates the length of a decompressed string according to the rules of
     * Part 2. In this part, nested markers within decompressed segments are
@@ -62,6 +62,7 @@ object Day09 extends ZIOAppDefault:
     *   The total length of the fully decompressed content as a `Long`.
     */
   def composableDecompress(compressed: String): Long =
+
     @tailrec
     def loop(
         currentSegment: String,
