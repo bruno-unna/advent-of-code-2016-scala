@@ -32,25 +32,21 @@ object Day09 extends ZIOAppDefault:
     decompressRec("", compressed)
 
   def composableDecompress(compressed: String): Long =
+    if compressed.isBlank then 0
+    else
+      compressed.match
+        case MarkerDataRE(prefix, dataLengthStr, repetitionsStr, suffix) =>
+          val dataLength = dataLengthStr.toInt
+          val repetitions = repetitionsStr.toInt
 
-    @tailrec
-    def composableDecompressRec(accLength: Long, compressed: String): Long =
-      if compressed.isBlank then accLength
-      else
-        compressed.match
-          case MarkerDataRE(prefix, dataLengthStr, repetitionsStr, suffix) =>
-            val dataLength = dataLengthStr.toInt
-            val repetitions = repetitionsStr.toInt
+          val segment = suffix.take(dataLength)
+          val rest = suffix.drop(dataLength)
 
-            val expandedSegment = suffix.take(dataLength) * repetitions
-
-            val newSuffix = expandedSegment + suffix.drop(dataLength)
-
-            composableDecompressRec(accLength + prefix.length, newSuffix)
-          case _ =>
-            accLength + compressed.length
-
-    composableDecompressRec(0, compressed)
+          prefix.length +
+            repetitions * composableDecompress(segment) +
+            composableDecompress(rest)
+        case _ =>
+          compressed.length
 
   def run =
     for
