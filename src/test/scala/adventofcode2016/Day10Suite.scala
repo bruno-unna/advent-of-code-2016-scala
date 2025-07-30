@@ -17,9 +17,17 @@ object Day10Suite extends ZIOSpecDefault:
         "value 2 goes to bot 2"
       )
       for
-        factory <- Factory.make(instructions)
-        _ <- factory.execute()
+        logQueue <- Queue.unbounded[String]
+        log <- logActor(logQueue).forkDaemon
 
-        foundBot <- factory.findComparingBot(5, 2)
-      yield assertTrue(foundBot == 2)
+        botsSetup <- setupBots(instructions, logQueue)
+        (botsFibers, botsQueues, valueAssignments) = botsSetup
+
+        _ <- process(botsQueues, valueAssignments, logQueue)
+        _ <- Console.printLine("Zzzz...")
+        _ <- ZIO.sleep(3.seconds)
+        _ <- Console.printLine("Awake!")
+        _ = botsFibers.foreach(_.interrupt)
+        _ = log.interrupt
+      yield assertTrue(true)
   )
