@@ -21,13 +21,14 @@ object Day10Suite extends ZIOSpecDefault:
         log <- logActor(logQueue).forkDaemon
 
         botsSetup <- setupBots(instructions, logQueue)
-        (botsFibers, botsQueues, valueAssignments) = botsSetup
+        (botsFibers, outputFibers, botsQueues, valueAssignments) = botsSetup
 
         _ <- process(botsQueues, valueAssignments, logQueue)
         _ <- Console.printLine("Zzzz...")
         _ <- ZIO.sleep(3.seconds)
         _ <- Console.printLine("Awake!")
         _ = botsFibers.foreach(_.interrupt)
+        _ = outputFibers.foreach(_.interrupt)
         _ = log.interrupt
       yield assertTrue(true)
   )

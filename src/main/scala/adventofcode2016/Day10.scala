@@ -3,18 +3,16 @@ package adventofcode2016
 import adventofcode2016.Util
 import zio.*
 
-import scala.util.matching.Regex
 import scala.annotation.tailrec
+import scala.util.matching.Regex
 
-type CanReceive = Either[Int, Int] // (left is output, right is bot)
+trait Destination(id: Int)
+case class Output(id: Int) extends Destination(id)
+case class Bot(id: Int) extends Destination(id)
 
-type ValueAssignment = (Int, Int) // (bot id, value)
+case class BotDefinition(id: Int, low: Destination, high: Destination)
 
-case class Bot(
-    id: Int,
-    lowDestination: CanReceive,
-    highDestination: CanReceive
-)
+case class ValueAssignment(botId: Int, value: Int)
 
 val BotToBotBotRE: Regex =
   """^bot (\d+) gives low to bot (\d+) and high to bot (\d+)$""".r
@@ -29,52 +27,67 @@ val ValToBotRE: Regex =
 
 def botActor(
     id: Int,
-    mailbox: Queue[Int],
-    botDef: Bot,
+    botDef: BotDefinition,
     botQueues: Map[Int, Queue[Int]],
+    outputQueues: Map[Int, Queue[Int]],
     logQueue: Queue[String],
-    chipBuffer: Ref[Option[Int]],
-    outputQueues: Map[Int, Queue[Int]]
+    firstChipRef: Ref[Option[Int]]
 ): UIO[Unit] =
+  val mailbox = botQueues(id)
   val process = for
     msg <- mailbox.take
-    _ <- logQueue.offer(s"bot ${id} is receiving chip ${msg}")
-    bufferedChip <- chipBuffer.get
+    firstChip <- firstChipRef.get
 
-    _ <- bufferedChip match
+    _ <- firstChip match
       case Some(previousChip) =>
         val (lowChip, highChip) = (previousChip min msg, previousChip max msg)
         for
           _ <-
             if lowChip == 17 && highChip == 61 then
-              logQueue.offer(s"*** found bot ${id} ***")
+              logQueue.offer(s"Part 1, found bot ${id}")
             else ZIO.succeed(true)
 
           _ <- botDef match
-            case Bot(id, Left(lowDestination), Left(highDestination)) =>
+            case BotDefinition(
+                  id,
+                  Output(lowDestination),
+                  Output(highDestination)
+                ) =>
               logQueue.offer(
-                s"bot ${id} is sending ${lowChip} to output ${lowDestination} and ${highChip} to output ${highDestination}"
-              )
-            case Bot(id, Left(lowDestination), Right(highDestination)) =>
-              logQueue.offer(
-                s"bot ${id} is sending ${lowChip} to output ${lowDestination} and ${highChip} to bot ${highDestination}"
+                s"bot ${id} sending ${lowChip} to output ${lowDestination} and ${highChip} to output ${highDestination}"
               ) *>
+                outputQueues(lowDestination).offer(lowChip) *>
+                outputQueues(highDestination).offer(highChip)
+            case BotDefinition(
+                  id,
+                  Output(lowDestination),
+                  Bot(highDestination)
+                ) =>
+              logQueue.offer(
+                s"bot ${id} sending ${lowChip} to output ${lowDestination} and ${highChip} to bot ${highDestination}"
+              ) *>
+                outputQueues(lowDestination).offer(lowChip) *>
                 botQueues(highDestination).offer(highChip)
-            case Bot(id, Right(lowDestination), Left(highDestination)) =>
+            case BotDefinition(
+                  id,
+                  Bot(lowDestination),
+                  Output(highDestination)
+                ) =>
               logQueue.offer(
-                s"bot ${id} is sending ${lowChip} to bot ${lowDestination} and ${highChip} to output ${highDestination}"
+                s"bot ${id} sending ${lowChip} to bot ${lowDestination} and ${highChip} to output ${highDestination}"
               ) *>
-                botQueues(lowDestination).offer(lowChip)
-            case Bot(id, Right(lowDestination), Right(highDestination)) =>
+                botQueues(lowDestination).offer(lowChip) *>
+                outputQueues(highDestination).offer(highChip)
+            case BotDefinition(id, Bot(lowDestination), Bot(highDestination)) =>
               logQueue.offer(
-                s"bot ${id} is sending ${lowChip} to bot ${lowDestination} and ${highChip} to bot ${highDestination}"
+                s"bot ${id} sending ${lowChip} to bot ${lowDestination} and ${highChip} to bot ${highDestination}"
               ) *>
                 botQueues(lowDestination).offer(lowChip) *>
                 botQueues(highDestination).offer(highChip)
-          _ <- chipBuffer.set(None)
+          _ <- firstChipRef.set(None)
         yield ()
       case None =>
-        chipBuffer.set(Some(msg))
+        firstChipRef.set(Some(msg))
   yield ()
   process.forever
 
@@ -91,10 +104,10 @@ def outputActor(
     last: Ref[Int],
     logQueue: Queue[String]
 ): UIO[Unit] =
-  val process = for 
+  val process = for
     msg <- mailbox.take
-    _ <- last.set(msg)
     _ <- logQueue.offer(s"output ${id} is receiving chip ${msg}")
+    _ <- last.set(msg)
   yield ()
   process.forever
 
@@ -102,63 +115,70 @@ def setupBots(
     instructions: Seq[String],
     logQueue: Queue[String]
 ): UIO[
-  (Seq[Fiber[Nothing, Unit]], Map[Int, Queue[Int]], Seq[ValueAssignment])
+  (
+      Seq[Fiber[Nothing, Unit]],
+      Seq[Fiber[Nothing, Unit]],
+      Map[Int, Queue[Int]],
+      Seq[ValueAssignment]
+  )
 ] =
   val (valInstructions, botInstructions) = instructions.partitionMap:
     instruction =>
       instruction match
         case BotToBotBotRE(botId, lowDst, highDst) =>
-          Right((botId.toInt, Right(lowDst.toInt), Right(highDst.toInt)))
+          Right((botId.toInt, Bot(lowDst.toInt), Bot(highDst.toInt)))
         case BotToBotOutRE(botId, lowDst, highDst) =>
-          Right((botId.toInt, Right(lowDst.toInt), Left(highDst.toInt)))
+          Right((botId.toInt, Bot(lowDst.toInt), Output(highDst.toInt)))
         case BotToOutBotRE(botId, lowDst, highDst) =>
-          Right((botId.toInt, Left(lowDst.toInt), Right(highDst.toInt)))
+          Right((botId.toInt, Output(lowDst.toInt), Bot(highDst.toInt)))
         case BotToOutOutRE(botId, lowDst, highDst) =>
-          Right((botId.toInt, Left(lowDst.toInt), Left(highDst.toInt)))
-        case ValToBotRE(value, botId) => Left((botId.toInt, value.toInt))
+          Right((botId.toInt, Output(lowDst.toInt), Output(highDst.toInt)))
+        case ValToBotRE(value, botId) =>
+          Left(ValueAssignment(botId.toInt, value.toInt))
   for
-    queuesSeq <- ZIO.collectAll(
+    outputQueues <- ZIO.collectAll(
+      (0 to 2) map: id =>
+        Queue.unbounded[Int].map(id -> _)
+    )
+    outputsMap = outputQueues.toMap
+
+    outputFibers <- ZIO.collectAll(
+      outputQueues.map: indexedQueue =>
+        for
+          state <- Ref.make[Int](1)
+          actor <- outputActor(
+            indexedQueue._1,
+            indexedQueue._2,
+            state,
+            logQueue
+          ).forkDaemon
+        yield actor
+    )
+
+    botQueues <- ZIO.collectAll(
       botInstructions.map:
         case (id, _, _) =>
           Queue.unbounded[Int].map(id -> _)
     )
-    queuesMap = queuesSeq.toMap
-
-    outputs <- ZIO.collectAll(
-      (0 to 2) map: id =>
-        Queue.unbounded[Int].map(id -> _)
-    )
-    outputsMap = outputs.toMap
-    _ <- ZIO.collectAll(
-      outputs.map: output =>
-        for
-          state <- Ref.make[Int](1)
-          actor <- outputActor(output._1, output._2, state, logQueue).forkDaemon
-        yield actor
-    )
+    queuesMap = botQueues.toMap
 
     botFibers <- ZIO.collectAll(
       botInstructions.map:
         case (id, lowDestination, highDestination) =>
-          val bot = Bot(id, lowDestination, highDestination)
+          val botDef = BotDefinition(id, lowDestination, highDestination)
           for
-            state <- Ref.make[Option[Int]](None)
+            firstChip <- Ref.make[Option[Int]](None)
             actor <- botActor(
               id,
-              queuesMap(id),
-              bot,
+              botDef,
               queuesMap,
+              outputsMap,
               logQueue,
-              state,
-              outputsMap
+              firstChip
             ).forkDaemon
-            _ <- Console
-              .printLine(s"bot ${id} is being created, defined as ${bot}")
-              .ignore
           yield actor
     )
-
-  yield (botFibers, queuesMap, valInstructions)
+  yield (botFibers, outputFibers, queuesMap, valInstructions)
 
 def process(
     botQueues: Map[Int, Queue[Int]],
@@ -167,21 +187,30 @@ def process(
 ): UIO[Unit] =
   ZIO
     .foreach(valueAssignments): va =>
-      logQueue.offer(s"offering bot ${va._1} the chip ${va._2}") *>
-        botQueues(va._1).offer(va._2)
+      botQueues(va._1).offer(va._2)
     .unit
 
 object Day10 extends ZIOAppDefault:
-
   def run =
     for
       instructions <- Util.readStrings("/10.txt")
 
       logQueue <- Queue.unbounded[String]
-      log <- logActor(logQueue).forkDaemon
+      logFiber <- logActor(logQueue).forkDaemon
 
       botsSetup <- setupBots(instructions, logQueue)
-      (botsFibers, botsQueues, valueAssignments) = botsSetup
+      (botsFibers, outputFibers, botsQueues, valueAssignments) = botsSetup
 
-      _ <- process(botsQueues, valueAssignments, logQueue)
+      _ <- process(
+        botsQueues,
+        valueAssignments,
+        logQueue
+      )
+
+      _ <- ZIO.sleep(3.seconds)
+      _ <- Console.printLine("Simulation time elapsed. Shutting down...").ignore
+
+      _ <- ZIO.foreach(botsFibers)(_.interrupt)
+      _ <- ZIO.foreach(outputFibers)(_.interrupt)
+      _ <- logFiber.interrupt
     yield ExitCode.success
