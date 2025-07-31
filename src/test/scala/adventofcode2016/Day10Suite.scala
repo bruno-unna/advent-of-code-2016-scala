@@ -21,7 +21,7 @@ object Day10Suite extends ZIOSpecDefault:
         log <- logActor(logQueue).forkDaemon
 
         botsSetup <- setupBots(instructions, logQueue)
-        (botsFibers, outputFibers, botsQueues, valueAssignments) = botsSetup
+        (botsFibers, outputFibers, botsQueues, valueAssignments, outputStateMap) = botsSetup
 
         _ <- process(botsQueues, valueAssignments, logQueue)
         _ <- Console.printLine("Zzzz...")

@@ -119,7 +119,8 @@ def setupBots(
       Seq[Fiber[Nothing, Unit]],
       Seq[Fiber[Nothing, Unit]],
       Map[Int, Queue[Int]],
-      Seq[ValueAssignment]
+      Seq[ValueAssignment],
+      Map[Int, Ref[Int]]
   )
 ] =
   val (valInstructions, botInstructions) = instructions.partitionMap:
@@ -135,21 +136,36 @@ def setupBots(
           Right((botId.toInt, Output(lowDst.toInt), Output(highDst.toInt)))
         case ValToBotRE(value, botId) =>
           Left(ValueAssignment(botId.toInt, value.toInt))
+
+  val maxOutput = botInstructions
+    .map: instruction =>
+      instruction match
+        case (_, Output(first), Output(second)) => first max second
+        case (_, Output(first), _)              => first
+        case (_, _, Output(second))             => second
+        case _                                  => 0
+    .max
+
   for
     outputQueues <- ZIO.collectAll(
-      (0 to 2) map: id =>
+      (0 to maxOutput) map: id =>
         Queue.unbounded[Int].map(id -> _)
     )
-    outputsMap = outputQueues.toMap
+    outputQueueMap = outputQueues.toMap
+
+    outputStates <- ZIO.collectAll(
+      (0 to maxOutput) map: id =>
+        Ref.make[Int](1).map(id -> _)
+    )
+    outputStateMap = outputStates.toMap
 
     outputFibers <- ZIO.collectAll(
       outputQueues.map: indexedQueue =>
         for
-          state <- Ref.make[Int](1)
           actor <- outputActor(
             indexedQueue._1,
             indexedQueue._2,
-            state,
+            outputStateMap(indexedQueue._1),
             logQueue
           ).forkDaemon
         yield actor
@@ -160,7 +176,7 @@ def setupBots(
         case (id, _, _) =>
           Queue.unbounded[Int].map(id -> _)
     )
-    queuesMap = botQueues.toMap
+    botQueueMap = botQueues.toMap
 
     botFibers <- ZIO.collectAll(
       botInstructions.map:
@@ -171,14 +187,14 @@ def setupBots(
             actor <- botActor(
               id,
               botDef,
-              queuesMap,
-              outputsMap,
+              botQueueMap,
+              outputQueueMap,
               logQueue,
               firstChip
             ).forkDaemon
           yield actor
     )
-  yield (botFibers, outputFibers, queuesMap, valInstructions)
+  yield (botFibers, outputFibers, botQueueMap, valInstructions, outputStateMap)
 
 def process(
     botQueues: Map[Int, Queue[Int]],
@@ -199,7 +215,8 @@ object Day10 extends ZIOAppDefault:
       logFiber <- logActor(logQueue).forkDaemon
 
       botsSetup <- setupBots(instructions, logQueue)
-      (botsFibers, outputFibers, botsQueues, valueAssignments) = botsSetup
+      (botsFibers, outputFibers, botsQueues, valueAssignments, outputStateMap) =
+        botsSetup
 
       _ <- process(
         botsQueues,
@@ -207,7 +224,17 @@ object Day10 extends ZIOAppDefault:
         logQueue
       )
 
-      _ <- ZIO.sleep(3.seconds)
+      _ <- ZIO.sleep(1.seconds)
+
+      outputValues <- ZIO.collectAll(
+        (0 to 2) map (id => outputStateMap(id).get)
+      )
+      product = outputValues.reduce(_ * _)
+
+      _ <- Console.printLine(
+        s"Part 2, the product of outputs 0, 1 and 2 is ${product}"
+      )
+
       _ <- Console.printLine("Simulation time elapsed. Shutting down...").ignore
 
       _ <- ZIO.foreach(botsFibers)(_.interrupt)
