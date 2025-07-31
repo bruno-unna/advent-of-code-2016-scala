@@ -277,9 +277,9 @@ object Day10 extends ZIOAppDefault:
       botsSetup <- setupBots(instructions, logQueue)
       (botsFibers, outputFibers, botsQueues, valueAssignments, outputStateMap) = botsSetup
 
-      _ <- process(botsQueues, valueAssignments, logQueue)
-
-      _ <- ZIO.sleep(1.seconds)
+      _ <- (process(botsQueues, valueAssignments) <* ZIO.sleep(1.second)).ensuring:
+        ZIO.foreach(botsFibers)(_.interrupt)
+        ZIO.foreach(outputFibers)(_.interrupt)
 
       outputValues <- ZIO.collectAll(
         (0 to 2) map (id => outputStateMap(id).get)
@@ -287,10 +287,4 @@ object Day10 extends ZIOAppDefault:
       product = outputValues.reduce(_ * _)
 
       _ <- Console.printLine(s"Part 2, the product of outputs 0, 1 and 2 is ${product}").ignore
-
-      _ <- Console.printLine("Simulation time elapsed. Shutting down...").ignore
-
-      _ <- ZIO.foreach(botsFibers)(_.interrupt)
-      _ <- ZIO.foreach(outputFibers)(_.interrupt)
-      _ <- logFiber.interrupt
     yield ExitCode.success
