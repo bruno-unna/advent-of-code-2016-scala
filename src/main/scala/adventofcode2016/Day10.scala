@@ -83,7 +83,6 @@ def botActor(
     botDef: BotDefinition,
     botQueues: Map[Int, Queue[Int]],
     outputQueues: Map[Int, Queue[Int]],
-    logQueue: Queue[String],
     firstChipRef: Ref[Option[Int]]
 ): UIO[Unit] =
   val mailbox = botQueues(id)
@@ -96,7 +95,7 @@ def botActor(
         val (lowChip, highChip) = (previousChip min msg, previousChip max msg)
         for
           _ <-
-            if lowChip == 17 && highChip == 61 then logQueue.offer(s"Part 1, found bot ${id}")
+            if lowChip == 17 && highChip == 61 then Console.printLine(s"Part 1, found bot ${id}").ignore
             else ZIO.succeed(true)
 
           _ <- botDef match
@@ -115,20 +114,6 @@ def botActor(
   yield ()
   process.forever
 
-/** Defines the behaviour of a logging actor. This actor continuously takes messages from its mailbox and prints them to
-  * the console.
-  * @param mailbox
-  *   The queue from which the logger receives log messages.
-  * @return
-  *   An [[UIO]] representing the perpetual process of this logging actor.
-  */
-def logActor(mailbox: Queue[String]): UIO[Unit] =
-  val process = for
-    msg <- mailbox.take
-    _ <- Console.printLine(msg).ignore
-  yield ()
-  process.forever
-
 /** Defines the behaviour of an output actor. Each output actor waits for chips, logs their reception, and stores the
   * last received chip's value.
   *
@@ -143,12 +128,7 @@ def logActor(mailbox: Queue[String]): UIO[Unit] =
   * @return
   *   An [[UIO]] representing the perpetual process of this output actor.
   */
-def outputActor(
-    id: Int,
-    mailbox: Queue[Int],
-    last: Ref[Int],
-    logQueue: Queue[String]
-): UIO[Unit] =
+def outputActor(id: Int, mailbox: Queue[Int], last: Ref[Int]): UIO[Unit] =
   val process = for
     msg <- mailbox.take
     _ <- last.set(msg)
@@ -170,7 +150,7 @@ def outputActor(
   *   - A sequence of initial chip value assignments.
   *   - A map from output IDs to their [[Ref]]s holding the last received chip value.
   */
-def setupBots(instructions: Seq[String], logQueue: Queue[String]): UIO[
+def setupBots(instructions: Seq[String]): UIO[
   (Seq[Fiber[Nothing, Unit]], Seq[Fiber[Nothing, Unit]], Map[Int, Queue[Int]], Seq[ValueAssignment], Map[Int, Ref[Int]])
 ] =
   val (valInstructions, botInstructions) = instructions.partitionMap: instruction =>
@@ -210,7 +190,7 @@ def setupBots(instructions: Seq[String], logQueue: Queue[String]): UIO[
 
     outputFibers <- ZIO.collectAll(
       outputQueues.map: iq =>
-        outputActor(iq._1, iq._2, outputStateMap(iq._1), logQueue).forkDaemon
+        outputActor(iq._1, iq._2, outputStateMap(iq._1)).forkDaemon
     )
 
     botQueues <- ZIO.collectAll(
@@ -231,7 +211,6 @@ def setupBots(instructions: Seq[String], logQueue: Queue[String]): UIO[
               botDef,
               botQueueMap,
               outputQueueMap,
-              logQueue,
               firstChip
             ).forkDaemon
           yield actor
@@ -248,11 +227,7 @@ def setupBots(instructions: Seq[String], logQueue: Queue[String]): UIO[
   * @return
   *   An [[UIO]] representing the completion of all initial chip offerings.
   */
-def process(
-    botQueues: Map[Int, Queue[Int]],
-    valueAssignments: Seq[ValueAssignment],
-    logQueue: Queue[String]
-): UIO[Unit] =
+def process(botQueues: Map[Int, Queue[Int]], valueAssignments: Seq[ValueAssignment]): UIO[Unit] =
   ZIO
     .foreach(valueAssignments): va =>
       botQueues(va._1).offer(va._2)
@@ -271,10 +246,7 @@ object Day10 extends ZIOAppDefault:
     for
       instructions <- Util.readStrings("/10.txt")
 
-      logQueue <- Queue.unbounded[String]
-      logFiber <- logActor(logQueue).forkDaemon
-
-      botsSetup <- setupBots(instructions, logQueue)
+      botsSetup <- setupBots(instructions)
       (botsFibers, outputFibers, botsQueues, valueAssignments, outputStateMap) = botsSetup
 
       _ <- (process(botsQueues, valueAssignments) <* ZIO.sleep(1.second)).ensuring:
