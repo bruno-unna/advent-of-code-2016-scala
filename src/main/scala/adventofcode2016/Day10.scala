@@ -3,7 +3,6 @@ package adventofcode2016
 import adventofcode2016.Util
 import zio.*
 
-import scala.annotation.tailrec
 import scala.util.matching.Regex
 
 /** Represents a destination where a chip can be sent.
