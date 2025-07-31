@@ -17,15 +17,13 @@ trait Destination(id: Int)
   */
 case class Output(id: Int) extends Destination(id)
 
-/** Represents a bot, a specific type of chip destination that can also process
-  * chips.
+/** Represents a bot, a specific type of chip destination that can also process chips.
   * @param id
   *   The unique identifier of the bot.
   */
 case class Bot(id: Int) extends Destination(id)
 
-/** Defines the behaviour of a bot, specifying where it sends its low and high
-  * chips.
+/** Defines the behaviour of a bot, specifying where it sends its low and high chips.
   * @param id
   *   The unique identifier of the bot being defined.
   * @param low
@@ -43,54 +41,40 @@ case class BotDefinition(id: Int, low: Destination, high: Destination)
   */
 case class ValueAssignment(botId: Int, value: Int)
 
-/** Regular expression to parse instructions where a bot gives low to a bot and
-  * high to another bot.
+/** Regular expression to parse instructions where a bot gives low to a bot and high to another bot.
   */
-val BotToBotBotRE: Regex =
-  """^bot (\d+) gives low to bot (\d+) and high to bot (\d+)$""".r
+val BotToBotBotRE: Regex = """^bot (\d+) gives low to bot (\d+) and high to bot (\d+)$""".r
 
-/** Regular expression to parse instructions where a bot gives low to a bot and
-  * high to an output.
+/** Regular expression to parse instructions where a bot gives low to a bot and high to an output.
   */
-val BotToBotOutRE: Regex =
-  """^bot (\d+) gives low to bot (\d+) and high to output (\d+)$""".r
+val BotToBotOutRE: Regex = """^bot (\d+) gives low to bot (\d+) and high to output (\d+)$""".r
 
-/** Regular expression to parse instructions where a bot gives low to an output
-  * and high to a bot.
+/** Regular expression to parse instructions where a bot gives low to an output and high to a bot.
   */
-val BotToOutBotRE: Regex =
-  """^bot (\d+) gives low to output (\d+) and high to bot (\d+)$""".r
+val BotToOutBotRE: Regex = """^bot (\d+) gives low to output (\d+) and high to bot (\d+)$""".r
 
-/** Regular expression to parse instructions where a bot gives low to an output
-  * and high to another output.
+/** Regular expression to parse instructions where a bot gives low to an output and high to another output.
   */
-val BotToOutOutRE: Regex =
-  """^bot (\d+) gives low to output (\d+) and high to output (\d+)$""".r
+val BotToOutOutRE: Regex = """^bot (\d+) gives low to output (\d+) and high to output (\d+)$""".r
 
 /** Regular expression to parse instructions assigning a value to a bot. */
-val ValToBotRE: Regex =
-  """value (\d+) goes to bot (\d+)""".r
+val ValToBotRE: Regex = """value (\d+) goes to bot (\d+)""".r
 
-/** Defines the behaviour of a single bot actor in the system. Each bot waits
-  * for chips, stores the first, and when it receives a second, it processes
-  * them (compares, logs if specific values, and sends to destinations).
+/** Defines the behaviour of a single bot actor in the system. Each bot waits for chips, stores the first, and when it
+  * receives a second, it processes them (compares, logs if specific values, and sends to destinations).
   *
   * @param id
   *   The unique identifier of this bot actor.
   * @param botDef
-  *   The definition object specifying this bot's low and high chip
-  *   destinations.
+  *   The definition object specifying this bot's low and high chip destinations.
   * @param botQueues
-  *   A map from bot IDs to their respective message queues, used for sending
-  *   chips to other bots.
+  *   A map from bot IDs to their respective message queues, used for sending chips to other bots.
   * @param outputQueues
-  *   A map from output IDs to their respective message queues, used for sending
-  *   chips to outputs.
+  *   A map from output IDs to their respective message queues, used for sending chips to outputs.
   * @param logQueue
   *   A queue used for sending log messages to the [[logActor]].
   * @param firstChipRef
-  *   A ZIO Ref to store the first chip received by this bot, waiting for a
-  *   second.
+  *   A ZIO Ref to store the first chip received by this bot, waiting for a second.
   * @return
   *   An [[UIO]] representing the perpetual process of this bot actor.
   */
@@ -112,47 +96,18 @@ def botActor(
         val (lowChip, highChip) = (previousChip min msg, previousChip max msg)
         for
           _ <-
-            if lowChip == 17 && highChip == 61 then
-              logQueue.offer(s"Part 1, found bot ${id}")
+            if lowChip == 17 && highChip == 61 then logQueue.offer(s"Part 1, found bot ${id}")
             else ZIO.succeed(true)
 
           _ <- botDef match
-            case BotDefinition(
-                  id,
-                  Output(lowDestination),
-                  Output(highDestination)
-                ) =>
-              logQueue.offer(
-                s"bot ${id} sending ${lowChip} to output ${lowDestination} and ${highChip} to output ${highDestination}"
-              ) *>
-                outputQueues(lowDestination).offer(lowChip) *>
-                outputQueues(highDestination).offer(highChip)
-            case BotDefinition(
-                  id,
-                  Output(lowDestination),
-                  Bot(highDestination)
-                ) =>
-              logQueue.offer(
-                s"bot ${id} sending ${lowChip} to output ${lowDestination} and ${highChip} to bot ${highDestination}"
-              ) *>
-                outputQueues(lowDestination).offer(lowChip) *>
-                botQueues(highDestination).offer(highChip)
-            case BotDefinition(
-                  id,
-                  Bot(lowDestination),
-                  Output(highDestination)
-                ) =>
-              logQueue.offer(
-                s"bot ${id} sending ${lowChip} to bot ${lowDestination} and ${highChip} to output ${highDestination}"
-              ) *>
-                botQueues(lowDestination).offer(lowChip) *>
-                outputQueues(highDestination).offer(highChip)
+            case BotDefinition(id, Output(lowDestination), Output(highDestination)) =>
+              outputQueues(lowDestination).offer(lowChip) *> outputQueues(highDestination).offer(highChip)
+            case BotDefinition(id, Output(lowDestination), Bot(highDestination)) =>
+              outputQueues(lowDestination).offer(lowChip) *> botQueues(highDestination).offer(highChip)
+            case BotDefinition(id, Bot(lowDestination), Output(highDestination)) =>
+              botQueues(lowDestination).offer(lowChip) *> outputQueues(highDestination).offer(highChip)
             case BotDefinition(id, Bot(lowDestination), Bot(highDestination)) =>
-              logQueue.offer(
-                s"bot ${id} sending ${lowChip} to bot ${lowDestination} and ${highChip} to bot ${highDestination}"
-              ) *>
-                botQueues(lowDestination).offer(lowChip) *>
-                botQueues(highDestination).offer(highChip)
+              botQueues(lowDestination).offer(lowChip) *> botQueues(highDestination).offer(highChip)
           _ <- firstChipRef.set(None)
         yield ()
       case None =>
@@ -160,8 +115,8 @@ def botActor(
   yield ()
   process.forever
 
-/** Defines the behaviour of a logging actor. This actor continuously takes
-  * messages from its mailbox and prints them to the console.
+/** Defines the behaviour of a logging actor. This actor continuously takes messages from its mailbox and prints them to
+  * the console.
   * @param mailbox
   *   The queue from which the logger receives log messages.
   * @return
@@ -174,8 +129,8 @@ def logActor(mailbox: Queue[String]): UIO[Unit] =
   yield ()
   process.forever
 
-/** Defines the behaviour of an output actor. Each output actor waits for chips,
-  * logs their reception, and stores the last received chip's value.
+/** Defines the behaviour of an output actor. Each output actor waits for chips, logs their reception, and stores the
+  * last received chip's value.
   *
   * @param id
   *   The unique identifier of this output actor.
@@ -196,19 +151,15 @@ def outputActor(
 ): UIO[Unit] =
   val process = for
     msg <- mailbox.take
-    _ <- logQueue.offer(s"output ${id} is receiving chip ${msg}")
     _ <- last.set(msg)
   yield ()
   process.forever
 
-/** Sets up the entire bot and output system based on a sequence of
-  * instructions. This function parses instructions, creates necessary message
-  * queues, ZIO Refs for state, and forks all bot and output actors as daemon
-  * fibers.
+/** Sets up the entire bot and output system based on a sequence of instructions. This function parses instructions,
+  * creates necessary message queues, ZIO Refs for state, and forks all bot and output actors as daemon fibers.
   *
   * @param instructions
-  *   A sequence of strings, each representing an instruction for bot behavior
-  *   or chip assignment.
+  *   A sequence of strings, each representing an instruction for bot behavior or chip assignment.
   * @param logQueue
   *   A queue shared with all actors for sending log messages.
   * @return
@@ -217,34 +168,23 @@ def outputActor(
   *   - A sequence of [[Fiber]]s for all forked output actors.
   *   - A map from bot IDs to their message queues.
   *   - A sequence of initial chip value assignments.
-  *   - A map from output IDs to their [[Ref]]s holding the last received chip
-  *     value.
+  *   - A map from output IDs to their [[Ref]]s holding the last received chip value.
   */
-def setupBots(
-    instructions: Seq[String],
-    logQueue: Queue[String]
-): UIO[
-  (
-      Seq[Fiber[Nothing, Unit]],
-      Seq[Fiber[Nothing, Unit]],
-      Map[Int, Queue[Int]],
-      Seq[ValueAssignment],
-      Map[Int, Ref[Int]]
-  )
+def setupBots(instructions: Seq[String], logQueue: Queue[String]): UIO[
+  (Seq[Fiber[Nothing, Unit]], Seq[Fiber[Nothing, Unit]], Map[Int, Queue[Int]], Seq[ValueAssignment], Map[Int, Ref[Int]])
 ] =
-  val (valInstructions, botInstructions) = instructions.partitionMap:
-    instruction =>
-      instruction match
-        case BotToBotBotRE(botId, lowDst, highDst) =>
-          Right((botId.toInt, Bot(lowDst.toInt), Bot(highDst.toInt)))
-        case BotToBotOutRE(botId, lowDst, highDst) =>
-          Right((botId.toInt, Bot(lowDst.toInt), Output(highDst.toInt)))
-        case BotToOutBotRE(botId, lowDst, highDst) =>
-          Right((botId.toInt, Output(lowDst.toInt), Bot(highDst.toInt)))
-        case BotToOutOutRE(botId, lowDst, highDst) =>
-          Right((botId.toInt, Output(lowDst.toInt), Output(highDst.toInt)))
-        case ValToBotRE(value, botId) =>
-          Left(ValueAssignment(botId.toInt, value.toInt))
+  val (valInstructions, botInstructions) = instructions.partitionMap: instruction =>
+    instruction match
+      case BotToBotBotRE(botId, lowDst, highDst) =>
+        Right((botId.toInt, Bot(lowDst.toInt), Bot(highDst.toInt)))
+      case BotToBotOutRE(botId, lowDst, highDst) =>
+        Right((botId.toInt, Bot(lowDst.toInt), Output(highDst.toInt)))
+      case BotToOutBotRE(botId, lowDst, highDst) =>
+        Right((botId.toInt, Output(lowDst.toInt), Bot(highDst.toInt)))
+      case BotToOutOutRE(botId, lowDst, highDst) =>
+        Right((botId.toInt, Output(lowDst.toInt), Output(highDst.toInt)))
+      case ValToBotRE(value, botId) =>
+        Left(ValueAssignment(botId.toInt, value.toInt))
 
   val maxOutput = botInstructions
     .map: instruction =>
@@ -269,15 +209,8 @@ def setupBots(
     outputStateMap = outputStates.toMap
 
     outputFibers <- ZIO.collectAll(
-      outputQueues.map: indexedQueue =>
-        for
-          actor <- outputActor(
-            indexedQueue._1,
-            indexedQueue._2,
-            outputStateMap(indexedQueue._1),
-            logQueue
-          ).forkDaemon
-        yield actor
+      outputQueues.map: iq =>
+        outputActor(iq._1, iq._2, outputStateMap(iq._1), logQueue).forkDaemon
     )
 
     botQueues <- ZIO.collectAll(
@@ -305,8 +238,7 @@ def setupBots(
     )
   yield (botFibers, outputFibers, botQueueMap, valInstructions, outputStateMap)
 
-/** Processes the initial value assignments by offering chips to their
-  * respective bots' queues.
+/** Processes the initial value assignments by offering chips to their respective bots' queues.
   * @param botQueues
   *   A map from bot IDs to their message queues.
   * @param valueAssignments
@@ -326,14 +258,12 @@ def process(
       botQueues(va._1).offer(va._2)
     .unit
 
-/** Main application object for Day 10 of Advent of Code 2016. It sets up the
-  * bot simulation, runs it, and then calculates the answers for Part 1 and Part
-  * 2.
+/** Main application object for Day 10 of Advent of Code 2016. It sets up the bot simulation, runs it, and then
+  * calculates the answers for Part 1 and Part 2.
   */
 object Day10 extends ZIOAppDefault:
-  /** The main entry point of the ZIO application. Reads instructions, sets up
-    * and runs the bot simulation, calculates results for Part 1 and Part 2, and
-    * then shuts down all actors.
+  /** The main entry point of the ZIO application. Reads instructions, sets up and runs the bot simulation, calculates
+    * results for Part 1 and Part 2, and then shuts down all actors.
     * @return
     *   An [[ExitCode]] indicating the application's success or failure.
     */
@@ -345,14 +275,9 @@ object Day10 extends ZIOAppDefault:
       logFiber <- logActor(logQueue).forkDaemon
 
       botsSetup <- setupBots(instructions, logQueue)
-      (botsFibers, outputFibers, botsQueues, valueAssignments, outputStateMap) =
-        botsSetup
+      (botsFibers, outputFibers, botsQueues, valueAssignments, outputStateMap) = botsSetup
 
-      _ <- process(
-        botsQueues,
-        valueAssignments,
-        logQueue
-      )
+      _ <- process(botsQueues, valueAssignments, logQueue)
 
       _ <- ZIO.sleep(1.seconds)
 
@@ -361,9 +286,7 @@ object Day10 extends ZIOAppDefault:
       )
       product = outputValues.reduce(_ * _)
 
-      _ <- Console.printLine(
-        s"Part 2, the product of outputs 0, 1 and 2 is ${product}"
-      )
+      _ <- Console.printLine(s"Part 2, the product of outputs 0, 1 and 2 is ${product}").ignore
 
       _ <- Console.printLine("Simulation time elapsed. Shutting down...").ignore
 
