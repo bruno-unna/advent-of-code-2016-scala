@@ -230,10 +230,9 @@ object Day10 extends ZIOAppDefault:
 
   private def waitForRefs(refs: Iterable[Ref[Int]])(predicate: Int => Boolean): ZIO[Any, Nothing, Unit] =
     ZIO
-      .foreach(refs)(_.get)
-      .flatMap: values =>
-        if values.forall(predicate) then ZIO.unit
-        else ZIO.sleep(10.milliseconds) *> waitForRefs(refs)(predicate)
+      .collectAll(refs.map(_.get))
+      .repeat(Schedule.spaced(10.milliseconds) && Schedule.recurWhile[Iterable[Int]](!_.forall(predicate)))
+      .unit
 
   /** The main entry point of the ZIO application. Reads instructions, sets up and runs the bot simulation, calculates
     * results for Part 1 and Part 2, and then shuts down all actors.
