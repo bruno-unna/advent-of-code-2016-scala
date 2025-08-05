@@ -246,11 +246,11 @@ object Day10 extends ZIOAppDefault:
       botsSetup <- setupBots(instructions)
       (botsFibers, outputFibers, botsQueues, valueAssignments, outputStateMap) = botsSetup
 
-      _ <- (process(botsQueues, valueAssignments) <* ZIO.sleep(1.second)).ensuring:
+      _ <- process(botsQueues, valueAssignments)
+
+      _ <- waitForRefs(outputStateMap.values)(_ >= 0).ensuring:
         ZIO.foreach(botsFibers)(_.interrupt)
         ZIO.foreach(outputFibers)(_.interrupt)
-
-      _ <- waitForRefs(outputStateMap.values)(_ >= 0)
 
       outputValues <- ZIO.collectAll(
         (0 to 2) map (id => outputStateMap(id).get)
