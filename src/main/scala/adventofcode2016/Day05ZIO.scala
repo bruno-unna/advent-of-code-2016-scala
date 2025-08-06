@@ -1,8 +1,10 @@
 package adventofcode2016
 
 import zio.*
+import zio.stream.ZStream
 
 import java.io.IOException
+import java.lang
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
@@ -60,6 +62,43 @@ object Day05ZIO extends ZIOAppDefault:
 
     countingTuple.map(_._2).map(_.take(8)).map(_.mkString)
 
+  /** Calculates the second password for Day 05.
+    *
+    * The password is an 8-character string where each character is placed at a specific position. The 6th character of
+    * an MD5 hash (that starts with five zeroes) indicates the position (0-7), and the 7th character indicates the
+    * character for that position. Positions can only be filled once.
+    *
+    * @param doorID
+    *   The door ID string.
+    * @return
+    *   The calculated 8-character password.
+    */
+  def calculateSecondPassword(doorID: String): UIO[String] =
+    ZStream
+      .iterate(0L)(_ + 1)
+      .mapZIOPar(8): n =>
+        md5(doorID + n)
+      .filter(_.startsWith("00000"))
+      .debug
+      .map: hash =>
+        val pos = hash.charAt(5)
+        val char = hash.charAt(6)
+        (pos, char)
+      .filter: (pos, _) =>
+        pos >= '0' && pos <= '7'
+      .map: (pos, char) =>
+        (pos - '0', char)
+      .scan((Set.empty[Int], Map.empty[Int, Char])):
+        case ((seen, password), (pos, char)) =>
+          if seen.contains(pos) then (seen, password)
+          else (seen + pos, password + (pos -> char))
+      .takeWhile(_._1.size < 8)
+      .runLast
+      .map:
+        case Some((_, passwordMap)) =>
+          (0 until 8).map(passwordMap).mkString
+        case None =>
+          "" // Should never happen
   /** The main entry point for the Day 05 application.
     *
     * Calculates and prints both the first and second passwords for the predefined door ID "ugkcyxxp".
