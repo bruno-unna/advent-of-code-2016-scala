@@ -82,14 +82,14 @@ object Day05ZIO extends ZIOAppDefault:
           .flatMap(f => Fiber.collectAll(f).join)
           .map: hashes =>
             hashes
-              .filter(_.startsWith("00000"))
-              .filter(h => h.charAt(5) >= '0' && h.charAt(5) <= '7')
+              .filter(h => h.startsWith("00000") && h.charAt(5) >= '0' && h.charAt(5) <= '7')
               .map: h =>
                 (h.charAt(5) - '0', h.charAt(6))
-              .map: entry =>
-                seenRef.modify: seen =>
-                  if seen.contains(entry._1) then (None, seen)
-                  else (Some(entry), seen + entry._1)
+              .map:
+                case (pos, char) =>
+                  seenRef.modify: seen =>
+                    if seen.contains(pos) then (None, seen)
+                    else (Some(pos -> char), seen + pos)
         collectedEntries <- ZIO.collectAll(potentialEntries)
         actualEntries = collectedEntries.collect:
           case Some(char) => char
