@@ -1,10 +1,8 @@
 package adventofcode2016
 
 import zio.*
-import zio.stream.ZStream
 
 import java.io.IOException
-import java.lang
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
@@ -53,7 +51,7 @@ object Day05ZIO extends ZIOAppDefault:
         .flatMap(f => Fiber.collectAll(f).join)
         .map(_.filter(_.startsWith("00000")).map(_.charAt(5)).toArray)
 
-    val countingTuple = ZIO.iterate((0, Array.empty[Char]))(_._2.length <= 8):
+    val countingTuple = ZIO.iterate((0, Array.empty[Char]))(_._2.length < 8):
       case (n, pwd) =>
         for
           moreChars <- batchFindChars(n)
@@ -74,31 +72,47 @@ object Day05ZIO extends ZIOAppDefault:
     *   The calculated 8-character password.
     */
   def calculateSecondPassword(doorID: String): UIO[String] =
-    ZStream
-      .iterate(0L)(_ + 1)
-      .mapZIOPar(8): n =>
-        md5(doorID + n)
-      .filter(_.startsWith("00000"))
-      .debug
-      .map: hash =>
-        val pos = hash.charAt(5)
-        val char = hash.charAt(6)
-        (pos, char)
-      .filter: (pos, _) =>
-        pos >= '0' && pos <= '7'
-      .map: (pos, char) =>
-        (pos - '0', char)
-      .scan((Set.empty[Int], Map.empty[Int, Char])):
-        case ((seen, password), (pos, char)) =>
-          if seen.contains(pos) then (seen, password)
-          else (seen + pos, password + (pos -> char))
-      .takeWhile(_._1.size < 8)
-      .runLast
-      .map:
-        case Some((_, passwordMap)) =>
-          (0 until 8).map(passwordMap).mkString
-        case None =>
-          "" // Should never happen
+    val batchSize = 1024
+
+    def batchFindChars(from: Long, seenRef: Ref[Set[Int]]): UIO[Array[(Int, Char)]] = {
+      val (start, end) = (from, from + batchSize)
+      for
+        potentialEntries <- ZIO
+          .foreach(start until end)(n => md5(doorID + n).fork)
+          .flatMap(f => Fiber.collectAll(f).join)
+          .map: hashes =>
+            hashes
+              .filter(_.startsWith("00000"))
+              .filter(h => h.charAt(5) >= '0' && h.charAt(5) <= '7')
+              .map: h =>
+                (h.charAt(5) - '0', h.charAt(6))
+              .map: entry =>
+                seenRef.modify: seen =>
+                  if seen.contains(entry._1) then (None, seen)
+                  else (Some(entry), seen + entry._1)
+        collectedEntries <- ZIO.collectAll(potentialEntries)
+        actualEntries = collectedEntries.collect:
+          case Some(char) => char
+      yield actualEntries.toArray
+    }
+
+    for
+      seenRef <- Ref.make(Set.empty[Int])
+
+      countingTuple = ZIO.iterate((0, Array.empty[(Int, Char)]))(_._2.length < 8):
+        case (n, currentEntries) =>
+          for
+            newEntries <- batchFindChars(n, seenRef)
+            entries = currentEntries ++ newEntries
+          yield (n + batchSize, entries)
+
+      pwd <- countingTuple
+        .map:
+          case (_, entries) =>
+            val entriesMap = entries.toMap
+            (0 to 7).map(entriesMap(_)).mkString
+    yield pwd
+
   /** The main entry point for the Day 05 application.
     *
     * Calculates and prints both the first and second passwords for the predefined door ID "ugkcyxxp".
@@ -109,4 +123,6 @@ object Day05ZIO extends ZIOAppDefault:
     for
       password <- calculatePassword(doorID)
       _ <- Console.printLine(s"password: $password")
+      secondPassword <- calculateSecondPassword(doorID)
+      _ <- Console.printLine(s"second password: $secondPassword")
     yield ()
