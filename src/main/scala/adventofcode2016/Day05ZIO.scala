@@ -121,8 +121,7 @@ object Day05ZIO extends ZIOAppDefault:
     println("Day 05")
     val doorID = "ugkcyxxp"
     for
-      password <- calculatePassword(doorID)
-      _ <- Console.printLine(s"password: $password")
-      secondPassword <- calculateSecondPassword(doorID)
-      _ <- Console.printLine(s"second password: $secondPassword")
+      (p1, p2) <- (calculatePassword(doorID) <&> calculateSecondPassword(doorID))
+      _ <- Console.printLine(s"password: $p1")
+      _ <- Console.printLine(s"second password: $p2")
     yield ()
