@@ -1,5 +1,7 @@
 package adventofcode2016
 
+import scala.annotation.tailrec
+
 object Day11:
 
   enum Element:
@@ -15,10 +17,23 @@ object Day11:
 
   import adventofcode2016.Day11.Element.*
 
-  def findPotentialStates(state: State): Set[State] = ???
+  def findSolutions(initialState: State, desiredState: State): Set[Solution] =
 
-  def findSolutions(solutionsFound: Set[Solution], seenStates: Set[State], initialState: State, desiredState: State): Set[Seq[State]] =
-    ???
+    def isSafe(state:State): Boolean = ???
+
+    def findPotentialStates(state: State): Set[State] = ???
+
+    def loop(solutionsFound: Set[Solution], seenStates: Set[State],
+             currentSequence: Seq[State], desiredState: State): Set[Solution] =
+      val currentState = currentSequence.last
+
+      if currentState == desiredState then solutionsFound + currentSequence
+      else
+        val potentialStates: Set[State] = findPotentialStates(currentState).diff(seenStates)
+        potentialStates.flatMap: newState =>
+          loop(solutionsFound, seenStates + newState, currentSequence.tail, desiredState)
+
+    loop(Set.empty, Set.empty, Seq(initialState), desiredState)
 
   @main
   def main(): Unit =
@@ -40,7 +55,7 @@ object Day11:
       )
     )
 
-    val solutions = findSolutions(Set.empty, Set.empty, initialState, desiredState)
+    val solutions = findSolutions(initialState, desiredState)
 
     val minLength = solutions.map(_.size).min
 
