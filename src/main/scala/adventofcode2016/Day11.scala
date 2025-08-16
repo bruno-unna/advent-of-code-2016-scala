@@ -2,8 +2,6 @@ package adventofcode2016
 
 object Day11:
 
-  val nFloors = 4
-
   enum Element:
     case Pm, Co, Cm, Ru, Pu
 
@@ -37,9 +35,11 @@ object Day11:
   def findSolutions(initialState: State, desiredState: State): Set[Solution] =
 
     def isSafe(devices: Set[Device]): Boolean =
-      devices.forall:
-        case Generator(element) => devices.contains(Chip(element))
-        case Chip(element) => devices.contains(Generator(element))
+      val generators = devices.collect { case g: Generator => g.element }
+      val chips = devices.collect { case c: Chip => c.element }
+
+      if generators.isEmpty then true
+      else chips.forall(c => generators.contains(c))
 
     def calculateNewState(state: State, originNumber: Byte, destinationNumber: Byte, payload: Payload): Option[State] =
       for
@@ -53,7 +53,8 @@ object Day11:
         newOriginFloor = Floor(originNumber, false, newOriginDevices)
 
         restOfState = state - origin - destination
-      yield restOfState + newOriginFloor + newDestinationFloor
+        newState = restOfState + newOriginFloor + newDestinationFloor
+      yield newState
 
     def findTransitions(state: State): Set[State] =
       // find the origin floor
@@ -71,12 +72,13 @@ object Day11:
 
       val originFloor = state.find(_.withLift).get
 
-      val payloads =
-        originFloor.devices.map(Payload.from).concat
+      val payloadPairs =
         for
           aDevice <- originFloor.devices
           anotherDevice <- originFloor.devices - aDevice
         yield Payload.from(aDevice, anotherDevice)
+
+      val payloads = originFloor.devices.map(Payload.from) ++ payloadPairs
 
       val destinationFloorNumbers: Set[Byte] =
         originFloor.number match
@@ -101,9 +103,13 @@ object Day11:
 
       if currentState == desiredState then solutionsFound + currentSequence
       else
-        val potentialStates: Set[State] = findTransitions(currentState).diff(seenStates)
-        potentialStates.flatMap: newState =>
-          loop(solutionsFound, seenStates + newState, currentSequence.tail, desiredState)
+        val potentialStates: Set[State] = findTransitions(currentState)
+        val newSolutions = for
+          newState <- potentialStates.diff(seenStates)
+          solution <- loop(solutionsFound, seenStates + newState, currentSequence :+ newState, desiredState)
+        yield solution
+        
+        solutionsFound ++ newSolutions
 
     loop(Set.empty, Set.empty, Seq(initialState), desiredState)
 
