@@ -9,7 +9,26 @@ object Day11:
   enum Element:
     case Pm, Co, Cm, Ru, Pu
 
-  case class Floor(number: Int, withLift: Boolean, generators: Set[Element], chips: Set[Element])
+  sealed trait Device
+
+  case class Generator(element: Element) extends Device
+
+  case class Chip(element: Element) extends Device
+
+  case class Floor(number: Int, withLift: Boolean, devices: Set[Device])
+
+  case class Payload(first: Device, maybeSecond: Option[Device])
+
+  object Payload:
+    def from(device: Device): Payload = Payload(device, None)
+
+    def from(aDevice: Device, anotherDevice: Device): Payload =
+      val twoDevices = List(aDevice, anotherDevice).sortWith:
+        case (Generator(_), Chip(_)) => true
+        case (Chip(_), Generator(_)) => false
+        case (Generator(a), Generator(b)) => a.ordinal < b.ordinal
+        case (Chip(a), Chip(b)) => a.ordinal < b.ordinal
+      Payload(twoDevices.head, twoDevices.tail.headOption)
 
   type State = Set[Floor]
 
@@ -21,28 +40,47 @@ object Day11:
 
     def isSafe(state: State): Boolean = ???
 
+    def calculateNewState(state: State, destinationNumber: Byte, payload:Payload): Option[State] = ???
+
     def findTransitions(state: State): Set[State] =
       // find the origin floor
       // find all possible payloads (lift with one or two items)
       // find the possible destination floors (can be one or two)
+
       // for each possible payload:
       //   for each pair of floors (origin, destination):
       //     calculate a new origin (remove lift and items) and destination (include lift and items)
-      //     maybe create a new State, with the above pair and the rest of the floors (depending on safety)
+      //     maybe create a new State, with the above pair and the rest of the floors (if it's safe)
       //   yield the newly created maybe state
       // yield a set with all the maybe created states
+
       // collect the maybe created states
-      
+
       val originFloor = state.find(_.withLift).get
-      val destinationFloorNumbers =
-        ((originFloor.number - 1) :: (originFloor.number + 1) :: Nil)
-          .filter(f => f > 0 && f <= nFloors)
-      val (destinationFloors, unaffectedFloors) = state.partition(f => destinationFloorNumbers.contains(f.number))
-      for
-        state <- Set(state)
-        floorNumber <- Set(1, 2, 3, 4)
-        generator <- state.find(_.withLift)
-      yield Set(unaffectedFloors) // TODO add all transitions
+
+      val payloads =
+        originFloor.devices.map(Payload.from).concat
+        for
+          aDevice <- originFloor.devices
+          anotherDevice <- originFloor.devices - aDevice
+        yield Payload.from(aDevice, anotherDevice)
+
+      val destinationFloorNumbers: Set[Byte] =
+        originFloor.number match
+          case 1 => Set(2)
+          case 2 => Set(1, 3)
+          case 3 => Set(2, 4)
+          case 4 => Set(3)
+          case _ => Set.empty
+
+      val maybeStates = for
+        payload <- payloads
+        destinationNumber <- destinationFloorNumbers
+        maybeNewState = calculateNewState(state, destinationNumber, payload)
+      yield maybeNewState
+
+      maybeStates.collect:
+        case Some(state) => state
 
     def loop(solutionsFound: Set[Solution], seenStates: Set[State],
              currentSequence: Seq[State], desiredState: State): Set[Solution] =
@@ -59,20 +97,22 @@ object Day11:
   @main
   def main(): Unit =
     val initialState = Set(
-      Floor(1, withLift = true, generators = Set(Pm), chips = Set(Pm)),
-      Floor(2, withLift = false, generators = Set(Co, Cm, Ru, Pu), chips = Set.empty),
-      Floor(3, withLift = false, generators = Set.empty, chips = Set(Co, Cm, Ru, Pu)),
-      Floor(4, withLift = false, generators = Set.empty, chips = Set.empty)
+      Floor(1, withLift = true, devices = Set(Generator(Pm), Chip(Pm))),
+      Floor(2, withLift = false, devices = Set(Generator(Co), Generator(Cm), Generator(Ru), Generator(Pu))),
+      Floor(3, withLift = false, devices = Set(Chip(Co), Chip(Cm), Chip(Ru), Chip(Pu))),
+      Floor(4, withLift = false, devices = Set.empty)
     )
     val desiredState = Set(
-      Floor(1, withLift = false, generators = Set.empty, chips = Set.empty),
-      Floor(2, withLift = false, generators = Set.empty, chips = Set.empty),
-      Floor(3, withLift = false, generators = Set.empty, chips = Set.empty),
+      Floor(1, withLift = false, devices = Set.empty),
+      Floor(2, withLift = false, devices = Set.empty),
+      Floor(3, withLift = false, devices = Set.empty),
       Floor(
         4,
         withLift = true,
-        generators = Set(Pm, Co, Cm, Ru, Pu),
-        chips = Set(Pm, Co, Cm, Ru, Pu)
+        devices = Set(
+          Generator(Pm), Generator(Co), Generator(Cm), Generator(Ru), Generator(Pu),
+          Chip(Pm), Chip(Co), Chip(Cm), Chip(Ru), Chip(Pu)
+        )
       )
     )
 
