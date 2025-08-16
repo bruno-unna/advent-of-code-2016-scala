@@ -1,7 +1,5 @@
 package adventofcode2016
 
-import scala.annotation.tailrec
-
 object Day11:
 
   val nFloors = 4
@@ -15,7 +13,7 @@ object Day11:
 
   case class Chip(element: Element) extends Device
 
-  case class Floor(number: Int, withLift: Boolean, devices: Set[Device])
+  case class Floor(number: Byte, withLift: Boolean, devices: Set[Device])
 
   case class Payload(first: Device, maybeSecond: Option[Device])
 
@@ -38,9 +36,24 @@ object Day11:
 
   def findSolutions(initialState: State, desiredState: State): Set[Solution] =
 
-    def isSafe(state: State): Boolean = ???
+    def isSafe(devices: Set[Device]): Boolean =
+      devices.forall:
+        case Generator(element) => devices.contains(Chip(element))
+        case Chip(element) => devices.contains(Generator(element))
 
-    def calculateNewState(state: State, destinationNumber: Byte, payload:Payload): Option[State] = ???
+    def calculateNewState(state: State, originNumber: Byte, destinationNumber: Byte, payload: Payload): Option[State] =
+      for
+        origin <- state.find(_.number == originNumber)
+        destination <- state.find(_.number == destinationNumber)
+
+        newDestinationDevices = payload.maybeSecond.fold(destination.devices + payload.first)(destination.devices + payload.first + _)
+        newDestinationFloor <- if isSafe(newDestinationDevices) then Option(Floor(destinationNumber, true, newDestinationDevices)) else None
+
+        newOriginDevices = payload.maybeSecond.fold(origin.devices - payload.first)(origin.devices - payload.first - _)
+        newOriginFloor = Floor(originNumber, false, newOriginDevices)
+
+        restOfState = state - origin - destination
+      yield restOfState + newOriginFloor + newDestinationFloor
 
     def findTransitions(state: State): Set[State] =
       // find the origin floor
@@ -76,7 +89,7 @@ object Day11:
       val maybeStates = for
         payload <- payloads
         destinationNumber <- destinationFloorNumbers
-        maybeNewState = calculateNewState(state, destinationNumber, payload)
+        maybeNewState = calculateNewState(state, originFloor.number, destinationNumber, payload)
       yield maybeNewState
 
       maybeStates.collect:
