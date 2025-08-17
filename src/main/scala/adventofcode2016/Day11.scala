@@ -1,5 +1,8 @@
 package adventofcode2016
 
+import scala.annotation.tailrec
+import scala.collection.immutable.Queue
+
 object Day11:
 
   enum Element:
@@ -30,7 +33,7 @@ object Day11:
 
   import adventofcode2016.Day11.Element.*
 
-  def findSolutions(initialState: State, desiredState: State): Set[Solution] =
+  def findSolutions(initialState: State, desiredState: State): Solution =
 
     def isSafe(devices: Set[Device]): Boolean =
       val generators = devices.collect { case g: Generator => g.element }
@@ -92,21 +95,29 @@ object Day11:
       maybeStates.collect:
         case Some(state) => state
 
-    def loop(solutionsFound: Set[Solution], seenStates: Set[State],
-             currentSequence: Seq[State], desiredState: State): Set[Solution] =
-      val currentState = currentSequence.last
+    def reconstructPaths(parents: Map[State, State], desiredState: State): Solution =
+      def loop(current: State): List[State] =
+        parents.get(current) match
+          case Some(parent) => parent :: loop(parent)
+          case None => List(current)
 
-      if currentState == desiredState then solutionsFound + currentSequence
+      loop(desiredState).reverse
+
+    @tailrec
+    def loop(desiredState: State, queue: Queue[State], seen: Set[State], parents: Map[State, State]): Map[State, State] =
+      if queue.isEmpty then parents
       else
-        val potentialStates: Set[State] = findTransitions(currentState)
-        val newSolutions = for
-          newState <- potentialStates.diff(seenStates)
-          solution <- loop(solutionsFound, seenStates + newState, currentSequence :+ newState, desiredState)
-        yield solution
+        val (state, reducedQueue) = queue.dequeue
+        if state == desiredState then parents
+        else
+          val potentialStates = findTransitions(state).diff(seen)
+          val newSeenStates = seen ++ potentialStates
+          val newQueue = reducedQueue.enqueueAll(potentialStates)
+          val newParents = parents ++ potentialStates.map(_ -> state)
+          loop(desiredState, newQueue, newSeenStates, newParents)
 
-        solutionsFound ++ newSolutions
-
-    loop(Set.empty, Set.empty, Seq(initialState), desiredState)
+    val parents = loop(desiredState, Queue[State](initialState), Set.empty[State], Map.empty[State, State])
+    reconstructPaths(parents, desiredState)
 
   @main
   def main(): Unit =
@@ -127,6 +138,4 @@ object Day11:
 
     val solutions = findSolutions(initialState, desiredState)
 
-    val minLength = solutions.map(_.size).min
-
-    println(s"Part 1: the minimum number of lift operations is ${minLength}")
+    println(s"Part 1: the minimum number of lift operations is ${solutions.length}")
