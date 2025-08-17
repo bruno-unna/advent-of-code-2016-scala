@@ -175,27 +175,27 @@ object Day11:
   @main
   def main(): Unit =
     val firstInitialState =
-      State(1, Map(
-        Generator(Pm) -> 1.byteValue, Chip(Pm) -> 1.byteValue,
-        Generator(Co) -> 2.byteValue, Generator(Cm) -> 2.byteValue, Generator(Ru) -> 2.byteValue, Generator(Pu) -> 2.byteValue,
-        Chip(Co) -> 3.byteValue, Chip(Cm) -> 3.byteValue, Chip(Ru) -> 3.byteValue, Chip(Pu) -> 3.byteValue
+      State(1, Map[Device, Byte](
+        Generator(Pm) -> 1, Chip(Pm) -> 1,
+        Generator(Co) -> 2, Generator(Cm) -> 2, Generator(Ru) -> 2, Generator(Pu) -> 2,
+        Chip(Co) -> 3, Chip(Cm) -> 3, Chip(Ru) -> 3, Chip(Pu) -> 3
       ))
     val firstDesiredState =
       State(4, Map(
-        Generator(Pm) -> 4.byteValue, Generator(Co) -> 4.byteValue, Generator(Cm) -> 4.byteValue, Generator(Ru) -> 4.byteValue, Generator(Pu) -> 4.byteValue,
-        Chip(Pm) -> 4.byteValue, Chip(Co) -> 4.byteValue, Chip(Cm) -> 4.byteValue, Chip(Ru) -> 4.byteValue, Chip(Pu) -> 4.byteValue
+        Generator(Pm) -> 4, Generator(Co) -> 4, Generator(Cm) -> 4, Generator(Ru) -> 4, Generator(Pu) -> 4,
+        Chip(Pm) -> 4, Chip(Co) -> 4, Chip(Cm) -> 4, Chip(Ru) -> 4, Chip(Pu) -> 4
       ))
     val secondInitialState =
       State(1, Map(
-        Generator(Pm) -> 1.byteValue, Chip(Pm) -> 1.byteValue, Generator(El) -> 1.byteValue, Generator(Di) -> 1.byteValue, Chip(El) -> 1.byteValue, Chip(Di) -> 1.byteValue,
-        Generator(Co) -> 2.byteValue, Generator(Cm) -> 2.byteValue, Generator(Ru) -> 2.byteValue, Generator(Pu) -> 2.byteValue,
-        Chip(Co) -> 3.byteValue, Chip(Cm) -> 3.byteValue, Chip(Ru) -> 3.byteValue, Chip(Pu) -> 3.byteValue
+        Generator(Pm) -> 1, Chip(Pm) -> 1, Generator(El) -> 1, Generator(Di) -> 1, Chip(El) -> 1, Chip(Di) -> 1,
+        Generator(Co) -> 2, Generator(Cm) -> 2, Generator(Ru) -> 2, Generator(Pu) -> 2,
+        Chip(Co) -> 3, Chip(Cm) -> 3, Chip(Ru) -> 3, Chip(Pu) -> 3
       ))
     val secondDesiredState =
       State(4, Map(
-        Generator(Pm) -> 4.byteValue, Generator(Co) -> 4.byteValue, Generator(Cm) -> 4.byteValue, Generator(Ru) -> 4.byteValue, Generator(Pu) -> 4.byteValue,
-        Chip(Pm) -> 4.byteValue, Chip(Co) -> 4.byteValue, Chip(Cm) -> 4.byteValue, Chip(Ru) -> 4.byteValue, Chip(Pu) -> 4.byteValue,
-        Generator(El) -> 4.byteValue, Generator(Di) -> 4.byteValue, Chip(El) -> 4.byteValue, Chip(Di) -> 4.byteValue
+        Generator(Pm) -> 4, Generator(Co) -> 4, Generator(Cm) -> 4, Generator(Ru) -> 4, Generator(Pu) -> 4,
+        Chip(Pm) -> 4, Chip(Co) -> 4, Chip(Cm) -> 4, Chip(Ru) -> 4, Chip(Pu) -> 4,
+        Generator(El) -> 4, Generator(Di) -> 4, Chip(El) -> 4, Chip(Di) -> 4
       ))
 
     val firstSolution = findSolution(firstInitialState, firstDesiredState)
