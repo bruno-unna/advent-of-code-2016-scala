@@ -6,7 +6,7 @@ import scala.collection.immutable.Queue
 object Day11:
 
   /** Represents a specific element type for a device. */
-  enum Element:
+  private enum Element:
     case Pm, Co, Cm, Ru, Pu, El, Di
 
   /** A sealed trait representing a generic device. */
@@ -16,13 +16,13 @@ object Day11:
    *
    * @param element The element of the generator.
    */
-  case class Generator(element: Element) extends Device
+  private case class Generator(element: Element) extends Device
 
   /** A case class representing a microchip for a specific element.
    *
    * @param element The element of the chip.
    */
-  case class Chip(element: Element) extends Device
+  private case class Chip(element: Element) extends Device
 
   /** A case class representing a payload of one or two devices to be moved by the lift.
    *
@@ -31,7 +31,7 @@ object Day11:
    */
   case class Payload(first: Device, maybeSecond: Option[Device])
 
-  object Payload:
+  private object Payload:
 
     /** Creates a payload with a single device.
      *
@@ -59,10 +59,10 @@ object Day11:
    * @param liftFloor       The current floor of the lift.
    * @param deviceLocations A map from each device to its current floor.
    */
-  case class State(liftFloor: Byte, deviceLocations: Map[Device, Byte])
+  private case class State(liftFloor: Byte, deviceLocations: Map[Device, Byte])
 
   /** A type alias for a sequence of states representing a solution path. */
-  type Solution = Seq[State]
+  private type Solution = Seq[State]
 
   import adventofcode2016.Day11.Element.*
 
