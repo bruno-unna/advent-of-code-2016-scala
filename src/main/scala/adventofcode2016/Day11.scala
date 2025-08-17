@@ -7,7 +7,7 @@ object Day11:
 
   /** Represents a specific element type for a device. */
   enum Element:
-    case Pm, Co, Cm, Ru, Pu
+    case Pm, Co, Cm, Ru, Pu, El, Di
 
   /** A sealed trait representing a generic device. */
   sealed trait Device
@@ -174,18 +174,32 @@ object Day11:
   /** The main entry point for the application. */
   @main
   def main(): Unit =
-    val initialState =
+    val firstInitialState =
       State(1, Map(
         Generator(Pm) -> 1.byteValue, Chip(Pm) -> 1.byteValue,
         Generator(Co) -> 2.byteValue, Generator(Cm) -> 2.byteValue, Generator(Ru) -> 2.byteValue, Generator(Pu) -> 2.byteValue,
         Chip(Co) -> 3.byteValue, Chip(Cm) -> 3.byteValue, Chip(Ru) -> 3.byteValue, Chip(Pu) -> 3.byteValue
       ))
-    val desiredState =
+    val firstDesiredState =
       State(4, Map(
         Generator(Pm) -> 4.byteValue, Generator(Co) -> 4.byteValue, Generator(Cm) -> 4.byteValue, Generator(Ru) -> 4.byteValue, Generator(Pu) -> 4.byteValue,
         Chip(Pm) -> 4.byteValue, Chip(Co) -> 4.byteValue, Chip(Cm) -> 4.byteValue, Chip(Ru) -> 4.byteValue, Chip(Pu) -> 4.byteValue
       ))
+    val secondInitialState =
+      State(1, Map(
+        Generator(Pm) -> 1.byteValue, Chip(Pm) -> 1.byteValue, Generator(El) -> 1.byteValue, Generator(Di) -> 1.byteValue, Chip(El) -> 1.byteValue, Chip(Di) -> 1.byteValue,
+        Generator(Co) -> 2.byteValue, Generator(Cm) -> 2.byteValue, Generator(Ru) -> 2.byteValue, Generator(Pu) -> 2.byteValue,
+        Chip(Co) -> 3.byteValue, Chip(Cm) -> 3.byteValue, Chip(Ru) -> 3.byteValue, Chip(Pu) -> 3.byteValue
+      ))
+    val secondDesiredState =
+      State(4, Map(
+        Generator(Pm) -> 4.byteValue, Generator(Co) -> 4.byteValue, Generator(Cm) -> 4.byteValue, Generator(Ru) -> 4.byteValue, Generator(Pu) -> 4.byteValue,
+        Chip(Pm) -> 4.byteValue, Chip(Co) -> 4.byteValue, Chip(Cm) -> 4.byteValue, Chip(Ru) -> 4.byteValue, Chip(Pu) -> 4.byteValue,
+        Generator(El) -> 4.byteValue, Generator(Di) -> 4.byteValue, Chip(El) -> 4.byteValue, Chip(Di) -> 4.byteValue
+      ))
 
-    val solution = findSolution(initialState, desiredState)
+    val firstSolution = findSolution(firstInitialState, firstDesiredState)
+    println(s"Part 1: the minimum number of lift operations is ${firstSolution.length - 1}")
 
-    println(s"Part 1: the minimum number of lift operations is ${solution.length - 1}")
+    val secondSolution = findSolution(secondInitialState, secondDesiredState)
+    println(s"Part 2: the minimum number of lift operations is ${secondSolution.length - 1}")
