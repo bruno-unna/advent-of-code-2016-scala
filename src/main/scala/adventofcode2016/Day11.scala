@@ -27,32 +27,39 @@ object Day11:
         case (Chip(a), Chip(b)) => a.ordinal < b.ordinal
       Payload(twoDevices.head, twoDevices.tail.headOption)
 
-  case class State(liftFloor: Byte, floors: Map[Byte, Set[Device]])
+  case class State(liftFloor: Byte, deviceLocations: Map[Device, Byte])
 
   type Solution = Seq[State]
 
   import adventofcode2016.Day11.Element.*
 
-  def findSolutions(initialState: State, desiredState: State): Solution =
+  private def findSolutions(initialState: State, desiredState: State): Solution =
 
-    def isSafe(devices: Set[Device]): Boolean =
+    def isSafe(devices: Seq[Device]): Boolean =
       val generators = devices.collect { case g: Generator => g.element }
       val chips = devices.collect { case c: Chip => c.element }
 
       if generators.isEmpty then true
       else chips.forall(c => generators.contains(c))
 
-    def calculateNewState(state: State, originNumber: Byte, destinationNumber: Byte, payload: Payload): Option[State] =
-      val originDevices = state.floors(state.liftFloor)
-      val destinationDevices = state.floors(destinationNumber)
-      val newDestinationDevices = payload.maybeSecond.fold(destinationDevices + payload.first)(destinationDevices + payload.first + _)
+    def calculateNewState(state: State, destinationNumber: Byte, payload: Payload): Option[State] =
+      val devicesAtOrigin = state.deviceLocations.filter((_, floor) => floor == state.liftFloor).map((device, _) => device).toSeq
+      val devicesAtDestination = state.deviceLocations.filter((_, floor) => floor == destinationNumber).map((device, _) => device).toSeq
+      val untouchedDevices = state.deviceLocations.filterNot(devicesAtOrigin.contains(_)).filterNot(devicesAtDestination.contains(_))
+
+      val newDevicesAtDestination = payload.maybeSecond.fold(devicesAtDestination :+ payload.first)(devicesAtDestination :+ payload.first :+ _)
+
       for
-        newDestinationDevices <- Some(newDestinationDevices).filter(isSafe)
+        newSafeDevicesAtDestination <- Some(newDevicesAtDestination).filter(isSafe)
+        safeDevicesAsMap = newSafeDevicesAtDestination.map(_ -> destinationNumber).toMap
 
-        newOriginDevices = payload.maybeSecond.fold(originDevices - payload.first)(originDevices - payload.first - _)
+        newDevicesAtOrigin = payload.maybeSecond
+          .fold(devicesAtOrigin.filterNot(_ == payload.first))
+          (d => devicesAtOrigin.filterNot(_ == payload.first).filterNot(_ == d))
+        originDevicesAsMap = newDevicesAtOrigin.map(_ -> state.liftFloor).toMap
 
-        newFloors = state.floors + (originNumber -> newOriginDevices) + (destinationNumber -> newDestinationDevices)
-      yield State(destinationNumber, newFloors)
+        newDevices = untouchedDevices ++ safeDevicesAsMap ++ originDevicesAsMap
+      yield State(destinationNumber, newDevices)
 
     def findTransitions(state: State): Set[State] =
       // find the origin floor
@@ -68,7 +75,7 @@ object Day11:
 
       // collect the maybe created states
 
-      val originFloorDevices = state.floors(state.liftFloor)
+      val originFloorDevices = state.deviceLocations.filter((_, f) => f == state.liftFloor).keys.toSet
 
       val payloadPairs =
         for
@@ -89,7 +96,7 @@ object Day11:
       val maybeStates = for
         payload <- payloads
         destinationNumber <- destinationFloorNumbers
-        maybeNewState = calculateNewState(state, state.liftFloor, destinationNumber, payload)
+        maybeNewState = calculateNewState(state, destinationNumber, payload)
       yield maybeNewState
 
       maybeStates.collect:
@@ -123,17 +130,14 @@ object Day11:
   def main(): Unit =
     val initialState =
       State(1, Map(
-        1.byteValue -> Set(Generator(Pm), Chip(Pm)),
-        2.byteValue -> Set(Generator(Co), Generator(Cm), Generator(Ru), Generator(Pu)),
-        3.byteValue -> Set(Chip(Co), Chip(Cm), Chip(Ru), Chip(Pu)),
-        4.byteValue -> Set.empty
+        Generator(Pm) -> 1.byteValue, Chip(Pm) -> 1.byteValue,
+        Generator(Co) -> 2.byteValue, Generator(Cm) -> 2.byteValue, Generator(Ru) -> 2.byteValue, Generator(Pu) -> 2.byteValue,
+        Chip(Co) -> 3.byteValue, Chip(Cm) -> 3.byteValue, Chip(Ru) -> 3.byteValue, Chip(Pu) -> 3.byteValue
       ))
     val desiredState =
       State(4, Map(
-        1.byteValue -> Set.empty,
-        2.byteValue -> Set.empty,
-        3.byteValue -> Set.empty,
-        4.byteValue -> Set(Generator(Pm), Generator(Co), Generator(Cm), Generator(Ru), Generator(Pu), Chip(Pm), Chip(Co), Chip(Cm), Chip(Ru), Chip(Pu))
+        Generator(Pm) -> 4.byteValue, Generator(Co) -> 4.byteValue, Generator(Cm) -> 4.byteValue, Generator(Ru) -> 4.byteValue, Generator(Pu) -> 4.byteValue,
+        Chip(Pm) -> 4.byteValue, Chip(Co) -> 4.byteValue, Chip(Cm) -> 4.byteValue, Chip(Ru) -> 4.byteValue, Chip(Pu) -> 4.byteValue
       ))
 
     val solutions = findSolutions(initialState, desiredState)
