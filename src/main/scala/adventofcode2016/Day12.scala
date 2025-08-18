@@ -111,18 +111,17 @@ object Day12 extends ZIOAppDefault:
   def run: ZIO[ZIOAppArgs & Scope, Throwable, ExitCode] =
     for
       listing <- Util.readStrings("/12.txt")
-
-      registers = Map[Register, Int](Register.a -> 0, Register.b -> 0, Register.c -> 0, Register.d -> 0)
-      pc = 0
       program <- loadProgram(listing.toVector)
 
-      initialComputer = Computer(registers, pc, program)
-      finalComputer = execute(initialComputer)
+      registersA = for
+        registers <- List(
+          Map[Register, Int](Register.a -> 0, Register.b -> 0, Register.c -> 0, Register.d -> 0),
+          Map[Register, Int](Register.a -> 0, Register.b -> 0, Register.c -> 1, Register.d -> 0)
+        )
+        pc = 0
+        computer = Computer(registers, pc, program)
+        newComputer = execute(computer)
+      yield newComputer.registers(a)
 
-      fixedRegisters = Map[Register, Int](Register.a -> 0, Register.b -> 0, Register.c -> 1, Register.d -> 0)
-      fixedInitialComputer = Computer(fixedRegisters, pc, program)
-      fixedFinalComputer = execute(fixedInitialComputer)
-
-      _ <- Console.printLine(s"Part 1, value at register 'a' is ${finalComputer.registers(Register.a)}").ignore
-      _ <- Console.printLine(s"Part 2, value at register 'a' is ${fixedFinalComputer.registers(Register.a)}").ignore
+      _ <- Console.printLine(s"Register a: ${registersA}")
     yield ExitCode.success
