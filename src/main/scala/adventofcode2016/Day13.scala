@@ -36,22 +36,6 @@ object Day13:
       nBits % 2 == 0
 
   /**
-   * Reconstructs the path from the origin to the target using a map of parent nodes.
-   *
-   * @param parents A map where each key is a coordinate and its value is its parent in the path.
-   * @param target  The destination coordinate.
-   * @return A list of coordinates representing the path from origin to target.
-   */
-  private def reconstructPath(parents: Map[Coordinates, Coordinates], target: Coordinates): List[Coordinates] =
-    @tailrec
-    def loop(current: Coordinates, acc: List[Coordinates]): List[Coordinates] =
-      parents.get(current) match
-        case Some(parent) => loop(parent, current :: acc)
-        case None => current :: acc
-
-    loop(target, Nil)
-
-  /**
    * Finds the shortest path in terms of steps from an origin to a destination.
    *
    * @param origin          The starting coordinate.
@@ -60,6 +44,15 @@ object Day13:
    * @return A list of coordinates representing the shortest path.
    */
   private def findSteps(origin: Coordinates, destination: Coordinates, favouriteNumber: Int): List[Coordinates] =
+
+    def reconstructPath(parents: Map[Coordinates, Coordinates], target: Coordinates): List[Coordinates] =
+      @tailrec
+      def loop(current: Coordinates, acc: List[Coordinates]): List[Coordinates] =
+        parents.get(current) match
+          case Some(parent) => loop(parent, current :: acc)
+          case None => current :: acc
+
+      loop(target, Nil)
 
     @tailrec
     def loop(parents: Map[Coordinates, Coordinates], seen: Set[Coordinates], queue: Queue[Coordinates]): Map[Coordinates, Coordinates] =
