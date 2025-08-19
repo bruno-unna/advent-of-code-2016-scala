@@ -46,10 +46,38 @@ object Day13:
     val predecessorMap = loop(Map.empty, Set(origin), Queue(origin))
     reconstructPath(predecessorMap, destination)
 
+  def visitedLocations(origin: Coordinates, favouriteNumber: Int, maxSteps: Int): Set[Coordinates] =
+    @tailrec
+    def loop(seen: Set[Coordinates], queue: Queue[(Coordinates, Int)]): Set[Coordinates] =
+      if queue.isEmpty then seen
+      else
+        val ((current, steps), reducedQueue) = queue.dequeue
+        if steps >= maxSteps then seen
+        else
+          val candidates = Set(
+            Coordinates(current.x - 1, current.y),
+            Coordinates(current.x + 1, current.y),
+            Coordinates(current.x, current.y - 1),
+            Coordinates(current.x, current.y + 1),
+          ).filterNot(c => c.x < 0 || c.y < 0).filter(_.isSpace(favouriteNumber))
+
+          val newCandidates = candidates.diff(seen)
+          val newQueue = reducedQueue.enqueueAll(newCandidates.map(_ -> (steps + 1)))
+          loop(seen ++ newCandidates, newQueue)
+
+    val initialQueue = Queue(origin -> 0)
+    val initialSeen = Set(origin)
+    loop(initialSeen, initialQueue)
+
+
   @main
   def day13(): Unit =
     val favouriteNumber = 1362
 
     val steps = findSteps(Coordinates(1, 1), Coordinates(31, 39), favouriteNumber)
     println(s"Part 1: the minimum path length is ${steps.length - 1}")
-    println(s"The path is ${steps.reverse}")
+
+    val maxSteps = 50
+
+    val locations = visitedLocations(Coordinates(1, 1), favouriteNumber, maxSteps)
+    println(s"Part 2: visitable locations within $maxSteps steps: ${locations.size}")
