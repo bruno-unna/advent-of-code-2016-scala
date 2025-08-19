@@ -35,14 +35,6 @@ object Day13:
       val nBits = n.toBinaryString.count(_ == '1')
       nBits % 2 == 0
 
-    /**
-     * Determines if the coordinates represent a wall.
-     *
-     * @param number The favourite number.
-     * @return `true` if the location is a wall, `false` otherwise.
-     */
-    def isWall(number: Int): Boolean = !isSpace(number)
-
   /**
    * Reconstructs the path from the origin to the target using a map of parent nodes.
    *
