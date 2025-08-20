@@ -83,26 +83,15 @@ object Day14 extends ZIOAppDefault:
                   case tripleDigitRE(cs) => cs.charAt(0)
               yield (newIndex, hash, repeatedChar)
 
-            override def isOtpKeyValid(salt: String, otpEntry: OtpEntry, stretched: Boolean): UIO[Boolean] = {
-              val batchSize = 100
+            override def isOtpKeyValid(salt: String, otpEntry: OtpEntry, stretched: Boolean): UIO[Boolean] =
+              val (candidateIndex, _, char) = otpEntry
+              val start = candidateIndex + 1
+              val end = candidateIndex + 1000
 
-              def batchFindNextHashes(from: Int, char: Char): UIO[Seq[String]] =
-                ZIO
-                  .foreach(from until from + batchSize)(n => md5(salt + n, stretched).fork)
-                  .flatMap(f => Fiber.collectAll(f).join)
-                  .map(_.filter(_.contains(char.toString * 5)))
+              ZIO.foreachPar(start to end): n =>
+                md5(salt + n, stretched).map(_.contains(char.toString * 5))
+              .map(_.exists(identity))
 
-              val (currentIdx, currentHash, char) = otpEntry
-              val top = currentIdx + 1000
-              for
-                (idx, valid) <- ZIO.iterate((currentIdx + 1, false))(t => t._1 <= top && !t._2):
-                  case (idx, valid) =>
-                    for
-                      batch <- batchFindNextHashes(idx, otpEntry._3)
-                      result = batch.nonEmpty
-                    yield (idx + batchSize, result)
-              yield valid
-            }
       yield service
 
   def calculateOTP(salt: String, stretched: Boolean = false): URIO[Hasher.Service, Vector[OtpEntry]] = {
