@@ -51,30 +51,52 @@ object Day14 extends ZIOAppDefault:
                     val newHash = computeMd5(s, stretched)
                     cache.update(_ + (s -> newHash)).as(newHash)
 
-            override def nextKeyCandidate(salt: String, stretched: Boolean): UIO[OtpEntry] =
-              for
-                firstI <- index.getAndIncrement
-                firstHash <- md5(salt + firstI, stretched)
-                (newI, newHash) <- ZIO.iterate(firstI -> firstHash)(t => !tripleDigitRE.matches(t._2)):
-                  case (i, hash) =>
-                    for
-                      newI <- index.getAndIncrement
-                      newHash <- md5(salt + newI, stretched)
-                    yield newI -> newHash
-                repeatedChar = newHash match
-                  case tripleDigitRE(cs) => cs.charAt(0)
-              yield (newI, newHash, repeatedChar)
+            val batchSize = 64
 
-            override def isOtpKeyValid(salt: String, otpEntry: OtpEntry, stretched: Boolean): UIO[Boolean] =
+            override def nextKeyCandidate(salt: String, stretched: Boolean): UIO[OtpEntry] =
+              def batchFindCandidates(from: Int): UIO[Seq[(Int, String)]] =
+                ZIO
+                  .foreach(from until from + batchSize)(n => md5(salt + n, stretched).map(h => (n, h)).fork)
+                  .flatMap(f => Fiber.collectAll(f).join)
+                  .map(_.filter(h => tripleDigitRE.matches(h._2)))
+
               for
-                i <- index.get
-                loopResult <- ZIO.iterate((i + 1, false))(t => t._1 <= i + 1000 && !t._2):
-                  case (i, valid) =>
+                firstI <- index.get
+                (newIndex, hash, _) <- ZIO.iterate(firstI, "", false)(!_._3):
+                  case (offset, _, _) =>
                     for
-                      hash <- md5(salt + i, stretched)
-                      valid = hash.contains(otpEntry._3.toString * 5)
-                    yield (i + 1, valid)
-              yield loopResult._2
+                      moreHashes <- batchFindCandidates(offset)
+                      result =
+                        if moreHashes.isEmpty then (offset + batchSize, "", false)
+                        else (moreHashes.head._1, moreHashes.head._2, true)
+                    yield result
+                _ <- index.set(newIndex + 1)
+                repeatedChar = hash match
+                  case tripleDigitRE(cs) => cs.charAt(0)
+              yield (newIndex, hash, repeatedChar)
+
+            override def isOtpKeyValid(salt: String, otpEntry: OtpEntry, stretched: Boolean): UIO[Boolean] = {
+              val batchSize = 100
+
+              def batchFindNextHashes(from: Int, char: Char): UIO[Seq[String]] =
+                ZIO
+                  .foreach(from until from + batchSize)(n => md5(salt + n, stretched).fork)
+                  .flatMap(f => Fiber.collectAll(f).join)
+                  .map(_.filter(_.contains(char.toString * 5)))
+
+              for
+                currentIdx <- index.get
+                top = currentIdx + 1000
+                (idx, valid) <- ZIO.iterate((currentIdx + 1, false))(t => t._1 <= top && !t._2):
+                  case (idx, valid) =>
+                    for
+                      batch <- batchFindNextHashes(idx, otpEntry._3)
+                      result =
+                        if batch.isEmpty then false
+                        else true
+                    yield (idx + batchSize, result)
+              yield valid
+            }
       yield service
 
   def calculateOTP(salt: String, stretched: Boolean = false): URIO[Hasher.Service, Vector[OtpEntry]] = {
