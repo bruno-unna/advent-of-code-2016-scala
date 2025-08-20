@@ -6,7 +6,7 @@ import zio.test.{Spec, ZIOSpecDefault, assertTrue}
 object Day14Suite extends ZIOSpecDefault:
 
   def spec: Spec[Any, Throwable] = suite("OTP generation")(
-    test("assert correct values"):
+    test("test ordinary hashes"):
       val salt = "abc"
       for
         otp <- Day14.calculateOTP(salt)

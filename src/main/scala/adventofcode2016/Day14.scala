@@ -14,6 +14,8 @@ object Day14 extends ZIOAppDefault:
 
   object Hasher:
     trait Service:
+      def init: UIO[Unit]
+
       def md5(s: String, stretched: Boolean): UIO[String]
 
       def nextKeyCandidate(salt: String, stretched: Boolean): UIO[OtpEntry]
@@ -30,6 +32,12 @@ object Day14 extends ZIOAppDefault:
         cache <- Ref.make(Map.empty[String, String])
         service =
           new Service:
+            override def init: UIO[Unit] =
+              for
+                _ <- index.set(0)
+                _ <- cache.set(Map.empty[String, String])
+              yield ()
+
             private def computeMd5(s: String, stretched: Boolean): String =
               @tailrec
               def loop(s: String, n: Int): String =
@@ -84,16 +92,14 @@ object Day14 extends ZIOAppDefault:
                   .flatMap(f => Fiber.collectAll(f).join)
                   .map(_.filter(_.contains(char.toString * 5)))
 
+              val (currentIdx, currentHash, char) = otpEntry
+              val top = currentIdx + 1000
               for
-                currentIdx <- index.get
-                top = currentIdx + 1000
                 (idx, valid) <- ZIO.iterate((currentIdx + 1, false))(t => t._1 <= top && !t._2):
                   case (idx, valid) =>
                     for
                       batch <- batchFindNextHashes(idx, otpEntry._3)
-                      result =
-                        if batch.isEmpty then false
-                        else true
+                      result = batch.nonEmpty
                     yield (idx + batchSize, result)
               yield valid
             }
@@ -102,6 +108,7 @@ object Day14 extends ZIOAppDefault:
   def calculateOTP(salt: String, stretched: Boolean = false): URIO[Hasher.Service, Vector[OtpEntry]] = {
     for
       hasher <- ZIO.service[Hasher.Service]
+      _ <- hasher.init
       firstOtp <- ZIO.succeed(Vector.empty[OtpEntry])
       firstEntry <- hasher.nextKeyCandidate(salt, stretched)
       otpTracker <- ZIO.iterate((firstOtp, firstEntry))(_._1.length <= 64):
