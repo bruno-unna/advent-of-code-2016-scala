@@ -60,6 +60,10 @@ object Day14 extends ZIOAppDefault:
 
     private def newMd5(): MessageDigest = MessageDigest.getInstance("MD5")
 
+    // This is how we find the first 3-repetition of a character; it took me a full day of debugging to realise that the
+    // question mark is extremely important. If it's not there, the first `.*` expression is greedy. That is not a
+    // problem in the general case, but if a sequence has more than one case of triple repetition, the greedy part would
+    // swallow all instances but the last. And we want the first instance, not the last one.
     private val tripleDigitRE: Regex = """^.*?(.)\1\1.*$""".r
 
     /**
@@ -112,7 +116,7 @@ object Day14 extends ZIOAppDefault:
               yield hash
 
             override def nextKeyCandidate(salt: String): UIO[(OtpEntry, Boolean)] =
-              val batchSize = 64
+              val batchSize = 64 // heuristic value, not incredibly important
 
               /**
                * Validates a potential OTP key by checking for a quintuplet of the triple's character
@@ -127,7 +131,7 @@ object Day14 extends ZIOAppDefault:
                 val start = candidateIndex + 1
                 val end = start + 1000
 
-                ZIO.foreachPar(start until end): n =>
+                ZIO.foreachPar(start until end): n => // luckily this is highly parallelizable
                   md5(salt + n).map(_.contains(char.toString * 5))
                 .map(_.contains(true))
 
@@ -151,8 +155,8 @@ object Day14 extends ZIOAppDefault:
                     for
                       moreHashes <- batchFindCandidates(offset)
                       result =
-                        if moreHashes.isEmpty then (offset + batchSize, "", false)
-                        else (moreHashes.head._1, moreHashes.head._2, true)
+                        if moreHashes.isEmpty then (offset + batchSize, "", false) // skip the whole batch
+                        else (moreHashes.head._1, moreHashes.head._2, true) // we're interested only in the first element
                     yield result
                 _ <- index.set(newIndex + 1)
                 repeatedChar = hash match
@@ -177,10 +181,10 @@ object Day14 extends ZIOAppDefault:
       _ <- hasher.init(stretched)
 
       otp <- ZStream
-        .repeatZIO(hasher.nextKeyCandidate(salt))
-        .filter(_._2)
-        .map(_._1)
-        .run(ZSink.take(64))
+        .repeatZIO(hasher.nextKeyCandidate(salt)) // keep invoking the generator
+        .filter(_._2) // remove invalid entries
+        .map(_._1) // leave only the OtpEntry
+        .run(ZSink.take(64)) // we only need 64 of these
     yield otp.toVector
 
   private def program =
