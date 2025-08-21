@@ -1,6 +1,7 @@
 package adventofcode2016
 
 import zio.*
+import zio.stream.{ZSink, ZStream}
 
 import java.io.IOException
 import java.nio.charset.StandardCharsets
@@ -18,13 +19,11 @@ object Day14 extends ZIOAppDefault:
 
       def md5(s: String): UIO[String]
 
-      def nextKeyCandidate(salt: String): UIO[OtpEntry]
-
-      def isOtpKeyValid(salt: String, otpEntry: OtpEntry): UIO[Boolean]
+      def nextKeyCandidate(salt: String): UIO[(OtpEntry, Boolean)]
 
     private def newMd5(): MessageDigest = MessageDigest.getInstance("MD5")
 
-    private val tripleDigitRE: Regex = """^.*(.)\1\1.*$""".r
+    private val tripleDigitRE: Regex = """^.*?(.)\1\1.*$""".r
 
     val live: ZLayer[Any, Nothing, Hasher.Service] = ZLayer.fromZIO:
       for
@@ -40,23 +39,23 @@ object Day14 extends ZIOAppDefault:
                 _ <- stretched.set(newStretched)
               yield ()
 
-            private def computeMd5(s: String, stretched: Boolean): String =
-              @tailrec
-              def loop(s: String, n: Int): String =
-                if n == 0 then s
-                else
-                  val md = newMd5()
-                  val hashBytes = md.digest(s.getBytes(StandardCharsets.UTF_8))
-                  val newHash = hashBytes.map("%02x".format(_)).mkString
-                  loop(newHash, n - 1)
+            override def md5(s: String): UIO[String] =
+              def computeMd5(s: String, stretched: Boolean): String =
+                @tailrec
+                def loop(s: String, n: Int): String =
+                  if n == 0 then s
+                  else
+                    val md = newMd5()
+                    val hashBytes = md.digest(s.getBytes(StandardCharsets.UTF_8))
+                    val newHash = hashBytes.map("%02x".format(_)).mkString
+                    loop(newHash, n - 1)
 
-              loop(s, if stretched then 2017 else 1)
+                loop(s, if stretched then 2017 else 1)
 
-            override def md5(s: String): UIO[String] = 
-              for 
+              for
                 currentCache <- cache.get
                 isStretched <- stretched.get
-                hash <- currentCache.get(s) match 
+                hash <- currentCache.get(s) match
                   case Some(h) =>
                     ZIO.succeed(h)
                   case None =>
@@ -64,8 +63,18 @@ object Day14 extends ZIOAppDefault:
                     cache.update(_ + (s -> h)).as(h)
               yield hash
 
-            override def nextKeyCandidate(salt: String): UIO[OtpEntry] =
+            override def nextKeyCandidate(salt: String): UIO[(OtpEntry, Boolean)] =
               val batchSize = 64
+
+              def isOtpKeyValid(salt: String, otpEntry: OtpEntry): UIO[Boolean] =
+                val (candidateIndex, _, char) = otpEntry
+                val start = candidateIndex + 1
+                val end = start + 1000
+
+                ZIO.foreachPar(start until end): n =>
+                  md5(salt + n).map(_.contains(char.toString * 5))
+                .map(_.contains(true))
+
               def batchFindCandidates(from: Int): UIO[Seq[(Int, String)]] =
                 ZIO
                   .foreach(from until from + batchSize)(n => md5(salt + n).map(h => (n, h)).fork)
@@ -85,44 +94,33 @@ object Day14 extends ZIOAppDefault:
                 _ <- index.set(newIndex + 1)
                 repeatedChar = hash match
                   case tripleDigitRE(cs) => cs.charAt(0)
-              yield (newIndex, hash, repeatedChar)
-
-            override def isOtpKeyValid(salt: String, otpEntry: OtpEntry): UIO[Boolean] =
-              val (candidateIndex, _, char) = otpEntry
-              val start = candidateIndex + 1
-              val end = start + 1000
-
-              ZIO.foreachPar(start until end): n =>
-                md5(salt + n).map(_.contains(char.toString * 5))
-              .map(_.contains(true))
+                otpEntry = (newIndex, hash, repeatedChar)
+                isValid <- isOtpKeyValid(salt, otpEntry)
+              yield (otpEntry, isValid)
 
       yield service
 
-  def calculateOTP(salt: String, stretched: Boolean = false): URIO[Hasher.Service, Vector[OtpEntry]] = {
+  def calculateOTP(salt: String, stretched: Boolean = false): URIO[Hasher.Service, Vector[OtpEntry]] =
     for
       hasher <- ZIO.service[Hasher.Service]
       _ <- hasher.init(stretched)
-      firstOtp <- ZIO.succeed(Vector.empty[OtpEntry])
-      firstEntry <- hasher.nextKeyCandidate(salt)
-      otpTracker <- ZIO.iterate((firstOtp, firstEntry))(_._1.length <= 64):
-        case (otp, otpEntry) =>
-          for
-            valid <- hasher.isOtpKeyValid(salt, otpEntry)
-            newOtp = if valid then otp :+ otpEntry else otp
-            newEntry <- hasher.nextKeyCandidate(salt)
-          yield (newOtp, newEntry)
-    yield otpTracker._1
-  }
+
+      otp <- ZStream
+        .repeatZIO(hasher.nextKeyCandidate(salt))
+        .filter(_._2)
+        .map(_._1)
+        .run(ZSink.take(64))
+    yield otp.toVector
 
   private def program =
     val salt = "ihaygndm"
 
     for
       otp <- calculateOTP(salt)
-      _ <- Console.printLine(s"index for 64th key (normal MD5): ${otp(64)}")
+      _ <- Console.printLine(s"index for key 64 (normal MD5): ${otp(63)}")
 
       stretchedOtp <- calculateOTP(salt, stretched = true)
-      _ <- Console.printLine(s"index for 64th key (stretched MD5): ${stretchedOtp(64)}")
+      _ <- Console.printLine(s"index for key 64 (stretched MD5): ${stretchedOtp(63)}")
     yield ()
 
   override def run: ZIO[Any, IOException, Unit] = program.provide(Hasher.live)
