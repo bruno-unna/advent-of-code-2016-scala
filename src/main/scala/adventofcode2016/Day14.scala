@@ -90,11 +90,11 @@ object Day14 extends ZIOAppDefault:
             override def isOtpKeyValid(salt: String, otpEntry: OtpEntry): UIO[Boolean] =
               val (candidateIndex, _, char) = otpEntry
               val start = candidateIndex + 1
-              val end = candidateIndex + 1000
+              val end = start + 1000
 
-              ZIO.foreachPar(start to end): n =>
+              ZIO.foreachPar(start until end): n =>
                 md5(salt + n).map(_.contains(char.toString * 5))
-              .map(_.exists(identity))
+              .map(_.contains(true))
 
       yield service
 
