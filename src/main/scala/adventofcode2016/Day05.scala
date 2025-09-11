@@ -102,7 +102,7 @@ object Day05 extends App:
     *
     * Calculates and prints both the first and second passwords for the predefined door ID "ugkcyxxp".
     */
-  @main def run =
+  @main def run(): Unit =
     println("Day 05")
     val doorID = "ugkcyxxp"
     val password = calculatePassword(doorID)
