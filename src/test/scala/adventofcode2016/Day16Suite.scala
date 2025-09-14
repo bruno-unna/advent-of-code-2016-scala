@@ -14,4 +14,4 @@ class Day16Suite extends FunSuite:
   test("Calculate checksum"):
     val expectedChecksum = "01100"
     val actualChecksum = Day16.calculateChecksum("10000011110010000111")
-    assertEquals(expectedChecksum, actualChecksum)
+    assertEquals(actualChecksum, expectedChecksum)
