@@ -7,7 +7,10 @@ object Day16 extends App:
   @tailrec
   def fillDisc(size: Int, a: String): String =
     if a.length >= size then a.substring(0, size)
-    else fillDisc(size, a + "0" + a.reverse.replace('0', '_').replace('1', '0').replace('_', '1'))
+    else fillDisc(size, a + "0" + a.reverse.map {
+      case '0' => '1'
+      case '1' => '0'
+    })
 
   @tailrec
   def calculateChecksum(str: String): String =
