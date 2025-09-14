@@ -38,7 +38,9 @@ object Day16 extends App:
   @tailrec
   def calculateChecksum(str: String): String =
     if str.length % 2 == 1 then str
-    else calculateChecksum(str.sliding(2, 2).map(c => c.charAt(0) == c.charAt(1)).map(if _ then '1' else '0').mkString(""))
+    else calculateChecksum(str.sliding(2, 2)
+      .map(c => c.charAt(0) == c.charAt(1))
+      .map(if _ then '1' else '0').mkString(""))
 
   /**
    * Main entry point for the Day 16 solution.
