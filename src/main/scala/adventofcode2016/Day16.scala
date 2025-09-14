@@ -22,7 +22,10 @@ object Day16 extends App:
 
     val input = "10001110011110000"
 
-    val fullDisc = fillDisc(272, input)
-    val checksum = calculateChecksum(fullDisc)
+    val firstDisc = fillDisc(272, input)
+    val firstChecksum = calculateChecksum(firstDisc)
+    println(s"first disc checksum: $firstChecksum")
 
-    println(s"checksum: $checksum")
+    val secondDisc = fillDisc(35651584, input)
+    val secondChecksum = calculateChecksum(secondDisc)
+    println(s"second disc checksum: $secondChecksum")
