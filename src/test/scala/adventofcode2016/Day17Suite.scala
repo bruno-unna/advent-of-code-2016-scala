@@ -1,6 +1,6 @@
 package adventofcode2016
 
-import adventofcode2016.Day17.Coordinates
+import adventofcode2016.Day17.{Coordinates, findAllPaths}
 import munit.FunSuite
 
 class Day17Suite extends FunSuite:
@@ -19,3 +19,18 @@ class Day17Suite extends FunSuite:
     val expectedPath = "DRURDRUDDLLDLUURRDULRLDUUDDDRR"
     val actualPath = Day17.findSteps("ulqzkmiv")
     assertEquals(actualPath, expectedPath)
+
+  test("longest path for ihgpwlah"):
+    val expected = 370
+    val actual = Day17.findAllPaths("ihgpwlah").map(_.length).max
+    assertEquals(actual, expected)
+
+  test("longest path for kglvqrro"):
+    val expected = 492
+    val actual = Day17.findAllPaths("kglvqrro").map(_.length).max
+    assertEquals(actual, expected)
+
+  test("longest path for ulqzkmiv"):
+    val expected = 830
+    val actual = Day17.findAllPaths("ulqzkmiv").map(_.length).max
+    assertEquals(actual, expected)
