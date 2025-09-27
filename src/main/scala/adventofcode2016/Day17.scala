@@ -98,20 +98,30 @@ object Day17:
   def findAllPaths(passcode: String): Set[String] =
     val origin = Coordinates(0, 0)
     val destination = Coordinates(3, 3)
-    val initialPath = ""
 
-    def loop(path: String, cell: Coordinates): Set[String] =
-      if cell == destination then Set(path)
+    @tailrec
+    def loop(queue: Queue[(Coordinates, String)], foundPaths: Set[String]): Set[String] =
+      if queue.isEmpty then
+        foundPaths
       else
-        val availableMoves = cell.checkMobility(passcode + path)
-        for
-          (direction, coordinates) <- availableMoves
-          newCells <- loop(path + direction, coordinates)
-        yield newCells
+        val ((current, path), reducedQueue) = queue.dequeue
 
-    val availableMoves = origin.checkMobility(passcode)
-    availableMoves.flatMap: (direction, coordinates) =>
-      loop(initialPath + direction, coordinates)
+        if current == destination then
+          // Path found, add it to the accumulator and continue with the rest of the queue
+          loop(reducedQueue, foundPaths + path)
+        else
+          // Explore available moves
+          val availableMoves = current.checkMobility(passcode + path)
+
+          // Add new states to the queue for exploration
+          val newQueue = availableMoves.foldLeft(reducedQueue): (q, m) =>
+            q.enqueue((m._2, path + m._1))
+
+          // The tail call: continue looping with the updated queue and unchanged accumulator
+          loop(newQueue, foundPaths)
+
+    // Start with the origin cell and an empty path
+    loop(Queue((origin, "")), Set.empty[String])
 
   /**
    * The main entry point for Day 17.
