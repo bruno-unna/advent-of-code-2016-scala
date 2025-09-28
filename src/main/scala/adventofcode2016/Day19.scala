@@ -23,6 +23,9 @@ object Day19:
 
     reduce(turn = 0) + 1
 
+  def playDiagonally(nElves: Int): Int =
+    ???
+
   @main
   def day19(): Unit =
     val elves = 3004953
@@ -30,3 +33,5 @@ object Day19:
     val winner = play(elves)
     println(s"Part 1: out of $elves elves, the winner if elimination is by neighbour is $winner")
 
+    val winnerDiagonally = playDiagonally(elves)
+    println(s"Part 2: out of $elves elves, the winner if elimination is diagonal is $winnerDiagonally")
