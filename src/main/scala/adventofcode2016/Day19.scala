@@ -9,7 +9,7 @@ object Day19:
   def play(nElves: Int): Int =
 
     val playfield = mutable.Map[Int, Elf]()
-    0 until nElves foreach (i => playfield.update(i, Elf(1, (i + 1) % nElves)))
+    1 to nElves foreach (i => playfield.update(i, Elf(1, (i % nElves) + 1)))
 
     @tailrec
     def reduce(turn: Int): Int =
@@ -21,7 +21,7 @@ object Day19:
         playfield.update(turn, elf.copy(presents = elf.presents + victim.presents, neighbour = victim.neighbour))
         reduce(turn = victim.neighbour)
 
-    reduce(turn = 0) + 1
+    reduce(turn = 1)
 
   def playDiagonally(nElves: Int): Int =
     ???
