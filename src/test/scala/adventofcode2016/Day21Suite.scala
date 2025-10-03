@@ -1,0 +1,29 @@
+package adventofcode2016
+
+import adventofcode2016.Day21.Scrambler
+import zio.ZIO
+import zio.test.{Spec, ZIOSpecDefault, assertTrue}
+
+object Day21Suite extends ZIOSpecDefault:
+
+  def spec: Spec[Any, String | Throwable] = suite("password scrambling")(
+    test("test successful scrambling"):
+      val password = "abcde"
+      val operations =
+        "swap position 4 with position 0" ::
+          "swap letter d with letter b" ::
+          "reverse positions 0 through 4" ::
+          "rotate left 1 step" ::
+          "move position 1 to position 4" ::
+          "move position 3 to position 0" ::
+          "rotate based on position of letter b" ::
+          "rotate based on position of letter d" ::
+          Nil
+      val expectedScrambledPwd = "decab"
+
+      for
+        scrambler <- ZIO.service[Scrambler.Service]
+        actualScrambledPwd <- scrambler.scramblePassword(password)
+        test <- assertTrue(actualScrambledPwd == expectedScrambledPwd)
+      yield test
+  ).provide(Scrambler.live)
