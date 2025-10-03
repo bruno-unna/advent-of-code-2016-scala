@@ -1,6 +1,7 @@
 package adventofcode2016
 
-import zio.{Console, Task, ZIO, ZIOAppDefault, ZLayer}
+import adventofcode2016.Day21.Scrambler.Operation
+import zio.{Console, Task, UIO, ZIO, ZIOAppDefault, ZLayer}
 
 import java.io.IOException
 import scala.util.matching.Regex
@@ -53,22 +54,27 @@ object Day21 extends ZIOAppDefault:
             (ZIO.attempt(xStr.toInt) <*> ZIO.attempt(yStr.toInt)).map((x, y) => Move(x, y))
 
     trait Service:
-      def scramblePassword(password: String): ZIO[Any, String, String]
+      def scramblePassword(password: String, operations: Seq[Operation]): ZIO[Any, String, String]
 
     val live: ZLayer[Any, Nothing, Scrambler.Service] =
       ZLayer.succeed:
         new Service:
-          override def scramblePassword(password: String): ZIO[Any, String, String] =
-            ???
+          override def scramblePassword(password: String, operations: Seq[Operation]): ZIO[Any, String, String] =
+            operations.foldLeft(ZIO.succeed(password)): (pwdEffect, operation) =>
+              for
+                pwd <- pwdEffect
+                newPwd = operation(pwd)
+              yield newPwd
 
   private def program =
     val password = "abcdefgh"
 
     for
-      operations <- Util.readStrings("/21.txt")
+      operationStrings <- Util.readStrings("/21.txt")
+      operations <- ZIO.foreach(operationStrings)(Operation.parse)
       scrambler <- ZIO.service[Scrambler.Service]
-      scrambledPassword <- scrambler.scramblePassword(password)
+      scrambledPassword <- scrambler.scramblePassword(password, operations)
       _ <- Console.printLine(s"part 1: scrambled password: $scrambledPassword")
     yield ()
 
-  override def run: ZIO[Any, IOException | String, Unit] = program.provide(Scrambler.live)
+  override def run: ZIO[Any, Serializable, Unit] = program.provide(Scrambler.live)
