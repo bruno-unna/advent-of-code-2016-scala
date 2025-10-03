@@ -1,9 +1,8 @@
 package adventofcode2016
 
 import adventofcode2016.Day21.Scrambler.Operation
-import zio.{Console, Task, UIO, ZIO, ZIOAppDefault, ZLayer}
+import zio.{Console, Task, ZIO, ZIOAppDefault, ZLayer}
 
-import java.io.IOException
 import scala.util.matching.Regex
 
 object Day21 extends ZIOAppDefault:
