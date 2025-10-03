@@ -11,22 +11,22 @@ object Day21 extends ZIOAppDefault:
     sealed trait Operation:
       def apply(input: String): String
 
-    case class SwapPositions(x: Int, y: Int) extends Operation:
+    private case class SwapPositions(x: Int, y: Int) extends Operation:
       override def apply(input: String): String = ???
 
-    case class SwapLetters(c: Char, c1: Char) extends Operation:
+    private case class SwapLetters(c: Char, c1: Char) extends Operation:
       override def apply(input: String): String = ???
 
-    case class Rotate(x: Int) extends Operation:
+    private case class Rotate(x: Int) extends Operation:
       override def apply(input: String): String = ???
 
-    case class RotateByIndex(x: Char) extends Operation:
+    private case class RotateByIndex(x: Char) extends Operation:
       override def apply(input: String): String = ???
 
-    case class Reverse(x: Int, y: Int) extends Operation:
+    private case class Reverse(x: Int, y: Int) extends Operation:
       override def apply(input: String): String = ???
 
-    case class Move(x: Int, y: Int) extends Operation:
+    private case class Move(x: Int, y: Int) extends Operation:
       override def apply(input: String): String = ???
 
     case object Operation:
