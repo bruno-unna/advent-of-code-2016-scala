@@ -25,14 +25,16 @@ object Day21 extends ZIOAppDefault:
             Nil
         elements.reduce((a, b) => a + b)
 
-      override def unapply(input: String): String = ???
+      override def unapply(input: String): String =
+        this (input)
 
     private case class SwapLetters(x: Char, y: Char) extends Operation:
       override def apply(input: String): String =
         val (xPos, yPos) = (input.indexOf(x), input.indexOf(y))
         SwapPositions(xPos, yPos)(input)
 
-      override def unapply(input: String): String = ???
+      override def unapply(input: String): String =
+        this (input)
 
     private case class Rotate(x: Int) extends Operation:
       override def apply(input: String): String =
@@ -40,7 +42,8 @@ object Day21 extends ZIOAppDefault:
         val (left, right) = input.splitAt(cutPoint)
         right + left
 
-      override def unapply(input: String): String = ???
+      override def unapply(input: String): String =
+        Rotate(-x)(input)
 
     private case class RotateByIndex(x: Char) extends Operation:
       override def apply(input: String): String =
@@ -48,7 +51,14 @@ object Day21 extends ZIOAppDefault:
         val rotation = 1 + xPos + (if xPos >= 4 then 1 else 0)
         Rotate(rotation)(input)
 
-      override def unapply(input: String): String = ???
+      override def unapply(input: String): String =
+        val newPos = input.indexOf(x)
+        val oldPos = if newPos % 2 == 0 then
+          val adjustedNewPos = if newPos == 0 then input.length else newPos
+          (adjustedNewPos + input.length) / 2 - 1
+        else
+          (newPos - 1) / 2
+        Rotate(newPos - oldPos).unapply(input)
 
     private case class Reverse(x: Int, y: Int) extends Operation:
       override def apply(input: String): String =
@@ -60,14 +70,16 @@ object Day21 extends ZIOAppDefault:
             Nil
         elements.reduce((a, b) => a + b)
 
-      override def unapply(input: String): String = ???
+      override def unapply(input: String): String =
+        this (input)
 
     private case class Move(x: Int, y: Int) extends Operation:
       override def apply(input: String): String =
         val reduced = input.take(x) + input.drop(x + 1)
         reduced.take(y) + input(x) + reduced.drop(y)
 
-      override def unapply(input: String): String = ???
+      override def unapply(input: String): String =
+        Move(y, x)(input)
 
     private case object Nop extends Operation:
       override def apply(input: String): String = input
@@ -128,8 +140,13 @@ object Day21 extends ZIOAppDefault:
       operationStrings <- Util.readStrings("/21.txt")
       operations <- ZIO.foreach(operationStrings)(Operation.parse)
       scrambler <- ZIO.service[Scrambler.Service]
+
       scrambledPassword <- scrambler.scramble(password, operations)
       _ <- Console.printLine(s"part 1: scrambled password: $scrambledPassword")
+
+      preScrambledPassword = "fbgdceah"
+      restoredPassword <- scrambler.unscramble(preScrambledPassword, operations)
+      _ <- Console.printLine(s"part 2: unscrambled password: $restoredPassword")
     yield ()
 
   override def run: ZIO[Any, Serializable, Unit] = program.provide(Scrambler.live)
