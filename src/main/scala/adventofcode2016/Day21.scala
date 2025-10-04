@@ -11,6 +11,8 @@ object Day21 extends ZIOAppDefault:
     sealed trait Operation:
       def apply(input: String): String
 
+      def unapply(input: String): String
+
     private case class SwapPositions(x: Int, y: Int) extends Operation:
       override def apply(input: String): String =
         val (min, max) = (x.min(y), x.max(y))
@@ -23,10 +25,14 @@ object Day21 extends ZIOAppDefault:
             Nil
         elements.reduce((a, b) => a + b)
 
+      override def unapply(input: String): String = ???
+
     private case class SwapLetters(x: Char, y: Char) extends Operation:
       override def apply(input: String): String =
         val (xPos, yPos) = (input.indexOf(x), input.indexOf(y))
         SwapPositions(xPos, yPos)(input)
+
+      override def unapply(input: String): String = ???
 
     private case class Rotate(x: Int) extends Operation:
       override def apply(input: String): String =
@@ -34,11 +40,15 @@ object Day21 extends ZIOAppDefault:
         val (left, right) = input.splitAt(cutPoint)
         right + left
 
+      override def unapply(input: String): String = ???
+
     private case class RotateByIndex(x: Char) extends Operation:
       override def apply(input: String): String =
         val xPos = input.indexOf(x)
         val rotation = 1 + xPos + (if xPos >= 4 then 1 else 0)
         Rotate(rotation)(input)
+
+      override def unapply(input: String): String = ???
 
     private case class Reverse(x: Int, y: Int) extends Operation:
       override def apply(input: String): String =
@@ -50,13 +60,19 @@ object Day21 extends ZIOAppDefault:
             Nil
         elements.reduce((a, b) => a + b)
 
+      override def unapply(input: String): String = ???
+
     private case class Move(x: Int, y: Int) extends Operation:
       override def apply(input: String): String =
         val reduced = input.take(x) + input.drop(x + 1)
         reduced.take(y) + input(x) + reduced.drop(y)
 
+      override def unapply(input: String): String = ???
+
     private case object Nop extends Operation:
       override def apply(input: String): String = input
+
+      override def unapply(input: String): String = input
 
     case object Operation:
       private val swapPositionsRE: Regex = """^swap position (\d+) with position (\d+)$""".r
@@ -84,17 +100,26 @@ object Day21 extends ZIOAppDefault:
             ZIO.succeed(Nop)
 
     trait Service:
-      def scramblePassword(password: String, operations: Seq[Operation]): ZIO[Any, String, String]
+      def scramble(password: String, operations: Seq[Operation]): ZIO[Any, String, String]
+
+      def unscramble(scrambled: String, operations: Seq[Operation]): ZIO[Any, String, String]
 
     val live: ZLayer[Any, Nothing, Scrambler.Service] =
       ZLayer.succeed:
         new Service:
-          override def scramblePassword(password: String, operations: Seq[Operation]): ZIO[Any, String, String] =
+          override def scramble(password: String, operations: Seq[Operation]): ZIO[Any, String, String] =
             operations.foldLeft(ZIO.succeed(password)): (pwdEffect, operation) =>
               for
                 pwd <- pwdEffect
                 newPwd = operation(pwd)
               yield newPwd
+
+          override def unscramble(scrambled: String, operations: Seq[Operation]): ZIO[Any, String, String] =
+            operations.foldRight(ZIO.succeed(scrambled)): (operation, scrambledEffect) =>
+              for
+                scrambled <- scrambledEffect
+                newScrambled = operation.unapply(scrambled)
+              yield newScrambled
 
   private def program =
     val password = "abcdefgh"
@@ -103,7 +128,7 @@ object Day21 extends ZIOAppDefault:
       operationStrings <- Util.readStrings("/21.txt")
       operations <- ZIO.foreach(operationStrings)(Operation.parse)
       scrambler <- ZIO.service[Scrambler.Service]
-      scrambledPassword <- scrambler.scramblePassword(password, operations)
+      scrambledPassword <- scrambler.scramble(password, operations)
       _ <- Console.printLine(s"part 1: scrambled password: $scrambledPassword")
     yield ()
 
