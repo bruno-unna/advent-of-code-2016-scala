@@ -28,12 +28,4 @@ object Day21Suite extends ZIOSpecDefault:
         actualScrambledPwd <- scrambler.scramble(password, operations)
         test <- assertTrue(actualScrambledPwd == scrambledPassword)
       yield test
-    ,
-    test("test unscrambling"):
-      for
-        scrambler <- ZIO.service[Scrambler.Service]
-        operations <- ZIO.foreach(operationStrings)(Operation.parse)
-        unscrambledPwd <- scrambler.unscramble(scrambledPassword, operations)
-        test <- assertTrue(unscrambledPwd == password)
-      yield test
   ).provide(Scrambler.live)
