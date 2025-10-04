@@ -12,27 +12,56 @@ object Day21 extends ZIOAppDefault:
       def apply(input: String): String
 
     private case class SwapPositions(x: Int, y: Int) extends Operation:
-      override def apply(input: String): String = ???
+      override def apply(input: String): String =
+        val (min, max) = (x.min(y), x.max(y))
+        val elements: List[String] =
+          input.take(min) ::
+            input.slice(max, max + 1) ::
+            input.slice(min + 1, max) ::
+            input.slice(min, min + 1) ::
+            input.drop(max + 1) ::
+            Nil
+        elements.reduce((a, b) => a + b)
 
-    private case class SwapLetters(c: Char, c1: Char) extends Operation:
-      override def apply(input: String): String = ???
+    private case class SwapLetters(x: Char, y: Char) extends Operation:
+      override def apply(input: String): String =
+        val (xPos, yPos) = (input.indexOf(x), input.indexOf(y))
+        SwapPositions(xPos, yPos)(input)
 
     private case class Rotate(x: Int) extends Operation:
-      override def apply(input: String): String = ???
+      override def apply(input: String): String =
+        val cutPoint = (2 * input.length - x) % input.length
+        val (left, right) = input.splitAt(cutPoint)
+        right + left
 
     private case class RotateByIndex(x: Char) extends Operation:
-      override def apply(input: String): String = ???
+      override def apply(input: String): String =
+        val xPos = input.indexOf(x)
+        val rotation = 1 + xPos + (if xPos >= 4 then 1 else 0)
+        Rotate(rotation)(input)
 
     private case class Reverse(x: Int, y: Int) extends Operation:
-      override def apply(input: String): String = ???
+      override def apply(input: String): String =
+        val (min, max) = (x.min(y), x.max(y))
+        val elements: List[String] =
+          input.take(min) ::
+            input.slice(min, max + 1).reverse ::
+            input.drop(max + 1) ::
+            Nil
+        elements.reduce((a, b) => a + b)
 
     private case class Move(x: Int, y: Int) extends Operation:
-      override def apply(input: String): String = ???
+      override def apply(input: String): String =
+        val reduced = input.take(x) + input.drop(x + 1)
+        reduced.take(y) + input(x) + reduced.drop(y)
+
+    private case object Nop extends Operation:
+      override def apply(input: String): String = input
 
     case object Operation:
       private val swapPositionsRE: Regex = """^swap position (\d+) with position (\d+)$""".r
       private val swapLettersRE: Regex = """^swap letter ([a-z]) with letter ([a-z])$""".r
-      private val rotateRE: Regex = """^rotate (left|right) (\d+) steps$""".r
+      private val rotateRE: Regex = """^rotate (left|right) (\d+) steps?$""".r
       private val rotateByIndexRE: Regex = """^rotate based on position of letter ([a-z])$""".r
       private val reverseRE: Regex = """^reverse positions (\d+) through (\d+)$""".r
       private val moveRE: Regex = """^move position (\d+) to position (\d+)$""".r
@@ -51,6 +80,8 @@ object Day21 extends ZIOAppDefault:
             (ZIO.attempt(xStr.toInt) <*> ZIO.attempt(yStr.toInt)).map((x, y) => Reverse(x, y))
           case moveRE(xStr, yStr) =>
             (ZIO.attempt(xStr.toInt) <*> ZIO.attempt(yStr.toInt)).map((x, y) => Move(x, y))
+          case _ =>
+            ZIO.succeed(Nop)
 
     trait Service:
       def scramblePassword(password: String, operations: Seq[Operation]): ZIO[Any, String, String]
