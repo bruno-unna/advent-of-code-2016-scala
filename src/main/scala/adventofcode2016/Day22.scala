@@ -20,7 +20,7 @@ object Day22 extends ZIOAppDefault:
           case _ =>
             None
 
-  private def findViablePairs(nodes: Set[Node]): Set[(Pos, Pos)] =
+  def findViablePairs(nodes: Set[Node]): Set[(Pos, Pos)] =
     for
       a <- nodes
       b <- nodes
@@ -28,6 +28,9 @@ object Day22 extends ZIOAppDefault:
       if a.used > 0
       if a.used <= b.available
     yield a.pos -> b.pos
+
+  def findShortestPath(space: Set[(Pos, Pos)], origin: (Int, Int), target: (Int, Int)): Seq[(Pos, Pos)] =
+    ???
 
   private def program =
     for
@@ -37,6 +40,9 @@ object Day22 extends ZIOAppDefault:
         case Some(n) => n
       viablePairs = findViablePairs(nodes.toSet)
       _ <- Console.printLine(s"part 1: number of viable pairs: ${viablePairs.size}")
+
+      shortestPath = findShortestPath(space = viablePairs, origin = (0, 0), target = (31, 0))
+      _ <- Console.printLine(s"part 2: shortest path is of length: ${shortestPath.length}")
     yield ()
 
   /**
