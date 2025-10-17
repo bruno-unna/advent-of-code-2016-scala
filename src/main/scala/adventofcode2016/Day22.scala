@@ -3,6 +3,8 @@ package adventofcode2016
 import zio.{Console, UIO, ZIO, ZIOAppDefault}
 
 import java.io.IOException
+import scala.annotation.tailrec
+import scala.collection.immutable.Queue
 
 object Day22 extends ZIOAppDefault:
 
@@ -20,17 +22,40 @@ object Day22 extends ZIOAppDefault:
           case _ =>
             None
 
-  def findViablePairs(nodes: Set[Node]): Set[(Pos, Pos)] =
+  def findViablePairs(nodes: Set[Node]): Set[(Node, Node)] =
     for
       a <- nodes
       b <- nodes
       if a != b
       if a.used > 0
       if a.used <= b.available
-    yield a.pos -> b.pos
+    yield a -> b
 
-  def findShortestPath(space: Set[(Pos, Pos)], origin: (Int, Int), target: (Int, Int)): Seq[(Pos, Pos)] =
-    ???
+  def findShortestPath(space: Set[(Node, Node)], origin: Pos, target: Pos): Seq[Pos] =
+
+    @tailrec
+    def loop(space: Set[(Node, Node)], queue: Queue[Pos], currentPath: Seq[Pos]): Seq[Pos] =
+      if queue.isEmpty then currentPath
+      else
+        val (destination, reducedQueue) = queue.dequeue
+        if destination == target then
+          destination +: currentPath
+        else
+          val (touched, untouched) = space.partition: (a, b) =>
+            a.pos == destination &&
+              (
+                ((a.pos._1 == b.pos._1) && (a.pos._2 - b.pos._2).abs == 1) ||
+                  ((a.pos._2 == b.pos._2) && (a.pos._1 - b.pos._1).abs == 1)
+                )
+
+          val modifiedPairs = touched.map: (a, b) =>
+            (a.copy(used = 0, available = a.size), b.copy(used = a.used, available = b.size - a.used))
+          val newSpace = untouched ++ modifiedPairs
+          loop(space = newSpace,
+            queue = reducedQueue.appendedAll(modifiedPairs.map((a, b) => b.pos)),
+            currentPath = destination +: currentPath)
+
+    loop(space = space, queue = Queue(origin), currentPath = Seq.empty[Pos])
 
   private def program =
     for
@@ -41,11 +66,8 @@ object Day22 extends ZIOAppDefault:
       viablePairs = findViablePairs(nodes.toSet)
       _ <- Console.printLine(s"part 1: number of viable pairs: ${viablePairs.size}")
 
-      shortestPath = findShortestPath(space = viablePairs, origin = (0, 0), target = (31, 0))
+      shortestPath = findShortestPath(space = viablePairs, origin = (31, 0), target = (0, 0))
       _ <- Console.printLine(s"part 2: shortest path is of length: ${shortestPath.length}")
     yield ()
 
-  /**
-   * The ZIO application run method, providing the live [[Scrambler.Service]].
-   */
   override def run: ZIO[Any, IOException, Unit] = program

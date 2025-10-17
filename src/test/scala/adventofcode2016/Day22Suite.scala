@@ -25,7 +25,7 @@ object Day22Suite extends ZIOSpecDefault:
         nodes = potentialNodes.collect:
           case Some(n) => n
         viablePairs = findViablePairs(nodes.toSet)
-        shortestPath = findShortestPath(space = viablePairs, origin = (0, 0), target = (2, 0))
+        shortestPath = findShortestPath(space = viablePairs, origin = (2, 0), target = (0, 0))
         test <- assertTrue(shortestPath.size == 7)
       yield test
   )
