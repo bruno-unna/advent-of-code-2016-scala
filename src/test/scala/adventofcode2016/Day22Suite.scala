@@ -1,8 +1,8 @@
 package adventofcode2016
 
-import adventofcode2016.Day22.{Node, findShortestPath, findViablePairs}
-import zio.ZIO
-import zio.test.{Spec, ZIOSpecDefault, assertTrue}
+import adventofcode2016.Day22.{Mesh, Node, findShortestPath, findViablePairs}
+import zio.{Console, ZIO}
+import zio.test.{Spec, TestResult, ZIOSpecDefault, assertTrue}
 
 object Day22Suite extends ZIOSpecDefault:
 
@@ -24,8 +24,11 @@ object Day22Suite extends ZIOSpecDefault:
         potentialNodes <- ZIO.foreachPar(df)(Node.parse)
         nodes = potentialNodes.collect:
           case Some(n) => n
-        viablePairs = findViablePairs(nodes.toSet)
-        shortestPath = findShortestPath(space = viablePairs, origin = (2, 0), target = (0, 0))
+        emptyPos = (1, 1)
+        mesh = Mesh(nodes = nodes.toMap, accessPos = (0, 0), interestingPos = (2, 0), emptyPos = emptyPos, path = Vector(emptyPos))
+        viablePairs = findViablePairs(mesh)
+        test <- assertTrue(viablePairs.size == 7)
+        shortestPath = findShortestPath(mesh)
         test <- assertTrue(shortestPath.size == 7)
       yield test
   )
