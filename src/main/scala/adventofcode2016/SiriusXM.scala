@@ -14,28 +14,29 @@ object SiriusXM extends App:
 
       loop(s, "")
 
-  private def longestSubstring(str: String): String =
-    @tailrec
-    def substrings(str: String, acc: List[String]): List[String] =
-      if str.isEmpty then acc
-      else
-        val index = str.zipWithIndex
-          .takeWhile: (c, i) =>
-            val haystack = str.take(i)
-            !haystack.contains(c)
-          .last._2 + 1
-        substrings(str.drop(index), str.take(index) :: acc)
+    private def longestSubstring: String =
+      @tailrec
+      def substrings(str: String, acc: List[String]): List[String] =
+        if str.isEmpty then acc
+        else
+          val index = str.zipWithIndex
+            .takeWhile: (c, i) =>
+              val haystack = str.take(i)
+              !haystack.contains(c)
+            .last._2 + 1
+          substrings(str.drop(index), str.take(index) :: acc)
 
-    substrings(str, List.empty[String]).maxBy(s => s.length)
-  end longestSubstring
+      substrings(s, List.empty[String]).maxBy(s => s.length)
+
+  end extension
 
   @main def entryPoint(): Unit =
     val firstTest = "abcaa"
-    val firstResult = longestSubstring(firstTest)
+    val firstResult = firstTest.longestSubstring
     println(firstResult)
 
     val secondTest = "aacba"
-    val secondResult = longestSubstring(secondTest)
+    val secondResult = secondTest.longestSubstring
     println(secondResult)
 
     val thirdTest = "12345"
